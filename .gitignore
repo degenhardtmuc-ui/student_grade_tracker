@@ -3,3 +3,7 @@ __pycache__/
 *.pyc
 .pytest_cache/
 .DS_Store
+
+# JupyterLab checkpoints
+.ipynb_checkpoints/
+**/.ipynb_checkpoints/
