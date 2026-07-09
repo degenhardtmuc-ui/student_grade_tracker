@@ -1,4 +1,6 @@
+import json
 import re
+from pathlib import Path
 
 from notenverwaltung.course import Course
 from notenverwaltung.grade import Grade
@@ -161,3 +163,175 @@ class GradeBook:
             for course in self.courses.values()
             if pattern.search(course.name)
         ]
+
+# Phase 3A: JSON persistence
+    
+
+    def to_dict(self) -> dict:
+        """Converts the whole grade book into simple Python data."""
+        students_data = []
+
+        for student in self.students.values():
+            students_data.append(
+                {
+                    "student_id": student.student_id,
+                    "first_name": student.first_name,
+                    "last_name": student.last_name,
+                    "email": student.email,
+                }
+            )
+
+        courses_data = []
+
+        for course in self.courses.values():
+            courses_data.append(
+                {
+                    "course_id": course.course_id,
+                    "name": course.name,
+                    "max_grade": course.max_grade,
+                    "passing_grade": course.passing_grade,
+                }
+            )
+
+        grades_data = []
+
+        for grade in self.grades:
+            grades_data.append(
+                {
+                    "student_id": grade.student.student_id,
+                    "course_id": grade.course.course_id,
+                    "score": grade.score,
+                    "date": grade.date,
+                    "notes": grade.notes,
+                }
+            )
+
+        return {
+            "students": students_data,
+            "courses": courses_data,
+            "grades": grades_data,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "GradeBook":
+        """Creates a GradeBook object from simple Python data."""
+        gradebook = cls()
+
+        for student_data in data["students"]:
+            student = Student(
+                student_id=student_data["student_id"],
+                first_name=student_data["first_name"],
+                last_name=student_data["last_name"],
+                email=student_data["email"],
+            )
+
+            gradebook.add_student(student)
+
+        for course_data in data["courses"]:
+            course = Course(
+                course_id=course_data["course_id"],
+                name=course_data["name"],
+                max_grade=course_data["max_grade"],
+                passing_grade=course_data["passing_grade"],
+            )
+
+            gradebook.add_course(course)
+
+        for grade_data in data["grades"]:
+            gradebook.record_grade(
+                student_id=grade_data["student_id"],
+                course_id=grade_data["course_id"],
+                score=grade_data["score"],
+                date=grade_data["date"],
+                notes=grade_data.get("notes", ""),
+            )
+
+        return gradebook
+
+    def save_json(self, file_path: str) -> None:
+        """Saves the whole grade book as a JSON file."""
+        path = Path(file_path)
+        data = self.to_dict()
+
+        json_text = json.dumps(data, indent=4)
+        path.write_text(json_text, encoding="utf-8")
+
+    @classmethod
+    def load_json(cls, file_path: str) -> "GradeBook":
+        """Loads a grade book from a JSON file."""
+        path = Path(file_path)
+        json_text = path.read_text(encoding="utf-8")
+
+        data = json.loads(json_text)
+
+        return cls.from_dict(data)
+
+    
+# Phase 3B: CSV export and import for grades
+    
+
+    def export_grades_to_csv(self, file_path: str) -> None:
+        """Exports all grades as a simple CSV file."""
+        path = Path(file_path)
+
+        lines = ["student_id,course_id,score,date"]
+
+        for grade in self.grades:
+            line = (
+                f"{grade.student.student_id},"
+                f"{grade.course.course_id},"
+                f"{grade.score},"
+                f"{grade.date}"
+            )
+
+            lines.append(line)
+
+        csv_text = "\n".join(lines)
+        path.write_text(csv_text, encoding="utf-8")
+
+    def import_grades_from_csv(self, file_path: str) -> dict:
+        """Imports grades from a CSV file and returns an import report."""
+        path = Path(file_path)
+        lines = path.read_text(encoding="utf-8").splitlines()
+
+        report = {
+            "imported": 0,
+            "skipped": 0,
+            "errors": [],
+        }
+
+        pattern = re.compile(
+            r"^([^,]+),([^,]+),([0-9]+(?:\.[0-9]+)?),(\d{4}-\d{2}-\d{2})$"
+        )
+
+        for line_number, line in enumerate(lines, start=1):
+            if line_number == 1 and line == "student_id,course_id,score,date":
+                continue
+
+            match = pattern.match(line)
+
+            if not match:
+                report["skipped"] = report["skipped"] + 1
+                report["errors"].append(f"Line {line_number}: invalid format")
+                continue
+
+            student_id = match.group(1)
+            course_id = match.group(2)
+            score = float(match.group(3))
+            date = match.group(4)
+
+            try:
+                self.record_grade(
+                    student_id=student_id,
+                    course_id=course_id,
+                    score=score,
+                    date=date,
+                )
+
+                report["imported"] = report["imported"] + 1
+
+            except ValueError as error:
+                report["skipped"] = report["skipped"] + 1
+                report["errors"].append(f"Line {line_number}: {error}")
+
+        return report
