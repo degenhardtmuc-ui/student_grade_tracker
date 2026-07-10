@@ -1,34 +1,124 @@
+"""Main GradeBook management module for the student grade system.
+
+This module contains the GradeBook class. The GradeBook works as the
+central manager of the application.
+
+It manages:
+- students
+- courses
+- grades
+- grade statistics
+- search functions
+- JSON saving and loading
+- CSV export and import
+
+The goal of this module is to keep all grade book data in one place
+and provide clear methods for working with this data.
+"""
+
+# ============================================================
+# Imports
+# ============================================================
+
 import json
 import re
 from pathlib import Path
 
 from notenverwaltung.course import Course
+from notenverwaltung.exceptions import (
+    CourseNotFoundError,
+    DuplicateEntryError,
+    PersistenceError,
+    StudentNotFoundError,
+)
 from notenverwaltung.grade import Grade
 from notenverwaltung.student import Student
 
 
+# ============================================================
+# Main Class: GradeBook Management
+# ============================================================
+
 class GradeBook:
-    """Manages students, courses, grades and grade statistics."""
+    """Manage students, courses, grades, statistics, and file operations.
+
+    The GradeBook class is the central class of the application.
+    It stores all students, all courses, and all recorded grades.
+
+    It also provides methods to:
+    - add students and courses
+    - record grades
+    - calculate averages
+    - calculate course pass rates
+    - find top students
+    - find students at risk
+    - search students and courses
+    - save and load data as JSON
+    - export and import grades as CSV
+    """
+
+    # ========================================================
+    # Initialization: Create an Empty GradeBook
+    # ========================================================
 
     def __init__(self) -> None:
-        """Creates an empty grade book."""
+        """Create an empty GradeBook object.
+
+        Three empty collections are created:
+        - students: stores Student objects by student ID
+        - courses: stores Course objects by course ID
+        - grades: stores all Grade objects in a list
+        """
+
         self.students: dict[str, Student] = {}
         self.courses: dict[str, Course] = {}
         self.grades: list[Grade] = []
 
+    # ========================================================
+    # Student Management: Add Students
+    # ========================================================
+
     def add_student(self, student: Student) -> None:
-        """Adds one student to the grade book."""
+        """Add one student to the GradeBook.
+
+        The student is stored by student ID.
+
+        If a student with the same ID already exists, a
+        DuplicateEntryError is raised. This prevents duplicate
+        students in the GradeBook.
+        """
+
         if student.student_id in self.students:
-            raise ValueError(f"Student with ID {student.student_id} already exists.")
+            raise DuplicateEntryError(
+                f"Student with ID {student.student_id} already exists."
+            )
 
         self.students[student.student_id] = student
 
+    # ========================================================
+    # Course Management: Add Courses
+    # ========================================================
+
     def add_course(self, course: Course) -> None:
-        """Adds one course to the grade book."""
+        """Add one course to the GradeBook.
+
+        The course is stored by course ID.
+
+        If a course with the same ID already exists, a
+        DuplicateEntryError is raised. This prevents duplicate
+        courses in the GradeBook.
+        """
+
         if course.course_id in self.courses:
-            raise ValueError(f"Course with ID {course.course_id} already exists.")
+            raise DuplicateEntryError(
+                f"Course with ID {course.course_id} already exists."
+            )
 
         self.courses[course.course_id] = course
+
+    # ========================================================
+    # Grade Management: Record Grades
+    # ========================================================
 
     def record_grade(
         self,
@@ -38,12 +128,36 @@ class GradeBook:
         date: str,
         notes: str = "",
     ) -> Grade:
-        """Creates and stores one grade for an existing student and course."""
+        """Create and store one grade for an existing student and course.
+
+        The method first checks whether the student and the course exist.
+        If both exist, a new Grade object is created and added to the
+        internal grades list.
+
+        Args:
+            student_id: The ID of the student who receives the grade.
+            course_id: The ID of the course for this grade.
+            score: The achieved score.
+            date: The date when the grade was recorded.
+            notes: Optional notes for the grade.
+
+        Returns:
+            The newly created Grade object.
+
+        Raises:
+            StudentNotFoundError: If the student ID does not exist.
+            CourseNotFoundError: If the course ID does not exist.
+        """
+
         if student_id not in self.students:
-            raise ValueError(f"Student with ID {student_id} does not exist.")
+            raise StudentNotFoundError(
+                f"Student with ID {student_id} does not exist."
+            )
 
         if course_id not in self.courses:
-            raise ValueError(f"Course with ID {course_id} does not exist.")
+            raise CourseNotFoundError(
+                f"Course with ID {course_id} does not exist."
+            )
 
         student = self.students[student_id]
         course = self.courses[course_id]
@@ -60,22 +174,89 @@ class GradeBook:
 
         return grade
 
-    def get_student_grades(self, student_id: str) -> list[Grade]:
-        """Returns all grades for one student."""
-        if student_id not in self.students:
-            raise ValueError(f"Student with ID {student_id} does not exist.")
+    # ========================================================
+    # Grade Lookup: Get Grades by Student
+    # ========================================================
 
-        return [grade for grade in self.grades if grade.student.student_id == student_id]
+    def get_student_grades(self, student_id: str) -> list[Grade]:
+        """Return all grades for one student.
+
+        The method searches the internal grades list and returns only
+        the grades that belong to the given student ID.
+
+        Args:
+            student_id: The ID of the student.
+
+        Returns:
+            A list of Grade objects for the selected student.
+
+        Raises:
+            StudentNotFoundError: If the student ID does not exist.
+        """
+
+        if student_id not in self.students:
+            raise StudentNotFoundError(
+                f"Student with ID {student_id} does not exist."
+            )
+
+        return [
+            grade
+            for grade in self.grades
+            if grade.student.student_id == student_id
+        ]
+
+    # ========================================================
+    # Grade Lookup: Get Grades by Course
+    # ========================================================
 
     def get_course_grades(self, course_id: str) -> list[Grade]:
-        """Returns all grades for one course."""
-        if course_id not in self.courses:
-            raise ValueError(f"Course with ID {course_id} does not exist.")
+        """Return all grades for one course.
 
-        return [grade for grade in self.grades if grade.course.course_id == course_id]
+        The method searches the internal grades list and returns only
+        the grades that belong to the given course ID.
+
+        Args:
+            course_id: The ID of the course.
+
+        Returns:
+            A list of Grade objects for the selected course.
+
+        Raises:
+            CourseNotFoundError: If the course ID does not exist.
+        """
+
+        if course_id not in self.courses:
+            raise CourseNotFoundError(
+                f"Course with ID {course_id} does not exist."
+            )
+
+        return [
+            grade
+            for grade in self.grades
+            if grade.course.course_id == course_id
+        ]
+
+    # ========================================================
+    # Statistics: Calculate Student Average
+    # ========================================================
 
     def student_average(self, student_id: str) -> float:
-        """Returns the average percentage for one student."""
+        """Return the average percentage for one student.
+
+        The method gets all grades for the selected student and calculates
+        the average percentage.
+
+        Args:
+            student_id: The ID of the student.
+
+        Returns:
+            The average percentage of the student.
+
+        Raises:
+            StudentNotFoundError: If the student ID does not exist.
+            ValueError: If the student has no recorded grades.
+        """
+
         grades = self.get_student_grades(student_id)
 
         if not grades:
@@ -85,8 +266,27 @@ class GradeBook:
 
         return total_percentage / len(grades)
 
+    # ========================================================
+    # Statistics: Calculate Course Average
+    # ========================================================
+
     def course_average(self, course_id: str) -> float:
-        """Returns the average score for one course."""
+        """Return the average score for one course.
+
+        The method gets all grades for the selected course and calculates
+        the average score.
+
+        Args:
+            course_id: The ID of the course.
+
+        Returns:
+            The average score of the course.
+
+        Raises:
+            CourseNotFoundError: If the course ID does not exist.
+            ValueError: If the course has no recorded grades.
+        """
+
         grades = self.get_course_grades(course_id)
 
         if not grades:
@@ -96,8 +296,27 @@ class GradeBook:
 
         return total_score / len(grades)
 
+    # ========================================================
+    # Statistics: Calculate Course Pass Rate
+    # ========================================================
+
     def course_pass_rate(self, course_id: str) -> float:
-        """Returns the percentage of passing grades for one course."""
+        """Return the percentage of passing grades for one course.
+
+        The method checks how many grades in a course are passing grades.
+        Then it calculates the pass rate as a percentage.
+
+        Args:
+            course_id: The ID of the course.
+
+        Returns:
+            The pass rate of the course in percent.
+
+        Raises:
+            CourseNotFoundError: If the course ID does not exist.
+            ValueError: If the course has no recorded grades.
+        """
+
         grades = self.get_course_grades(course_id)
 
         if not grades:
@@ -111,8 +330,25 @@ class GradeBook:
 
         return passing_grades / len(grades) * 100
 
+    # ========================================================
+    # Ranking: Find Top Students
+    # ========================================================
+
     def top_students(self, n: int = 5) -> list[tuple[Student, float]]:
-        """Returns the top N students by average percentage."""
+        """Return the top N students by average percentage.
+
+        The method calculates the average for every student who has
+        at least one recorded grade. Then it sorts the students from
+        the highest average to the lowest average.
+
+        Args:
+            n: The maximum number of top students to return.
+
+        Returns:
+            A list of tuples. Each tuple contains a Student object and
+            the student's average percentage.
+        """
+
         averages = []
 
         for student_id, student in self.students.items():
@@ -126,8 +362,24 @@ class GradeBook:
 
         return averages[:n]
 
+    # ========================================================
+    # Risk Analysis: Find Students Below a Threshold
+    # ========================================================
+
     def students_at_risk(self, threshold: float = 60.0) -> list[Student]:
-        """Returns students whose average percentage is below the threshold."""
+        """Return students whose average percentage is below the threshold.
+
+        This method can be used to find students who may need support.
+        Only students with at least one recorded grade are checked.
+
+        Args:
+            threshold: The percentage limit below which a student is
+                considered at risk.
+
+        Returns:
+            A list of Student objects whose average is below the threshold.
+        """
+
         at_risk_students = []
 
         for student_id, student in self.students.items():
@@ -141,8 +393,23 @@ class GradeBook:
 
         return at_risk_students
 
+    # ========================================================
+    # Search Functions: Search Students
+    # ========================================================
+
     def search_students(self, query: str) -> list[Student]:
-        """Searches students by first name, last name or email using regex."""
+        """Search students by first name, last name, email, or full name.
+
+        The search uses a regular expression. The search is not
+        case-sensitive, so uppercase and lowercase letters do not matter.
+
+        Args:
+            query: The search text or regular expression.
+
+        Returns:
+            A list of matching Student objects.
+        """
+
         pattern = re.compile(query, re.IGNORECASE)
 
         return [
@@ -154,8 +421,23 @@ class GradeBook:
             or pattern.search(student.full_name)
         ]
 
+    # ========================================================
+    # Search Functions: Search Courses
+    # ========================================================
+
     def search_courses(self, query: str) -> list[Course]:
-        """Searches courses by course name using regex."""
+        """Search courses by course name.
+
+        The search uses a regular expression. The search is not
+        case-sensitive, so uppercase and lowercase letters do not matter.
+
+        Args:
+            query: The search text or regular expression.
+
+        Returns:
+            A list of matching Course objects.
+        """
+
         pattern = re.compile(query, re.IGNORECASE)
 
         return [
@@ -164,11 +446,23 @@ class GradeBook:
             if pattern.search(course.name)
         ]
 
-# Phase 3A: JSON persistence
-    
+    # ========================================================
+    # JSON Persistence: Convert GradeBook to Dictionary
+    # ========================================================
 
     def to_dict(self) -> dict:
-        """Converts the whole grade book into simple Python data."""
+        """Convert the complete GradeBook into simple dictionary data.
+
+        This method prepares the GradeBook for JSON saving.
+
+        Complex objects like Student, Course, and Grade are converted
+        into dictionaries with simple values such as strings, numbers,
+        and lists.
+
+        Returns:
+            A dictionary containing students, courses, and grades.
+        """
+
         students_data = []
 
         for student in self.students.values():
@@ -212,9 +506,30 @@ class GradeBook:
             "grades": grades_data,
         }
 
+    # ========================================================
+    # JSON Persistence: Rebuild GradeBook from Dictionary
+    # ========================================================
+
     @classmethod
     def from_dict(cls, data: dict) -> "GradeBook":
-        """Creates a GradeBook object from simple Python data."""
+        """Create a GradeBook object from dictionary data.
+
+        This method rebuilds students, courses, and grades from simple
+        Python dictionary data.
+
+        It is mainly used after loading JSON data from a file.
+
+        Args:
+            data: Dictionary data containing students, courses, and grades.
+
+        Returns:
+            A rebuilt GradeBook object.
+
+        Raises:
+            KeyError: If required dictionary keys are missing.
+            ValueError: If the loaded data contains invalid values.
+        """
+
         gradebook = cls()
 
         for student_data in data["students"]:
@@ -248,51 +563,154 @@ class GradeBook:
 
         return gradebook
 
-    def save_json(self, file_path: str) -> None:
-        """Saves the whole grade book as a JSON file."""
-        path = Path(file_path)
-        data = self.to_dict()
+    # ========================================================
+    # JSON Persistence: Save GradeBook as JSON File
+    # ========================================================
 
-        json_text = json.dumps(data, indent=4)
-        path.write_text(json_text, encoding="utf-8")
+    def save_json(self, file_path: str) -> None:
+        """Save the complete GradeBook as a JSON file.
+
+        The method first converts the GradeBook into dictionary data.
+        Then it converts this data into formatted JSON text and writes
+        it into the selected file.
+
+        Args:
+            file_path: The path where the JSON file should be saved.
+
+        Raises:
+            PersistenceError: If the file cannot be written.
+        """
+
+        try:
+            path = Path(file_path)
+            data = self.to_dict()
+
+            json_text = json.dumps(data, indent=4)
+            path.write_text(json_text, encoding="utf-8")
+
+        except OSError as error:
+            raise PersistenceError(
+                f"Could not save JSON file: {file_path}"
+            ) from error
+
+    # ========================================================
+    # JSON Persistence: Load GradeBook from JSON File
+    # ========================================================
 
     @classmethod
     def load_json(cls, file_path: str) -> "GradeBook":
-        """Loads a grade book from a JSON file."""
-        path = Path(file_path)
-        json_text = path.read_text(encoding="utf-8")
+        """Load a GradeBook object from a JSON file.
 
-        data = json.loads(json_text)
+        The method reads JSON text from a file, converts it into
+        dictionary data, and rebuilds a GradeBook object from this data.
 
-        return cls.from_dict(data)
+        Args:
+            file_path: The path of the JSON file that should be loaded.
 
-    
-# Phase 3B: CSV export and import for grades
-    
+        Returns:
+            A loaded GradeBook object.
+
+        Raises:
+            PersistenceError: If the file cannot be read, decoded,
+            or converted into valid GradeBook data.
+        """
+
+        try:
+            path = Path(file_path)
+            json_text = path.read_text(encoding="utf-8")
+            data = json.loads(json_text)
+
+            return cls.from_dict(data)
+
+        except OSError as error:
+            raise PersistenceError(
+                f"Could not read JSON file: {file_path}"
+            ) from error
+
+        except json.JSONDecodeError as error:
+            raise PersistenceError(
+                f"Could not decode JSON file: {file_path}"
+            ) from error
+
+        except (KeyError, TypeError, ValueError) as error:
+            raise PersistenceError(
+                f"JSON file contains invalid grade book data: {file_path}"
+            ) from error
+
+    # ========================================================
+    # CSV Export: Export Grades to CSV File
+    # ========================================================
 
     def export_grades_to_csv(self, file_path: str) -> None:
-        """Exports all grades as a simple CSV file."""
-        path = Path(file_path)
+        """Export all recorded grades into a simple CSV file.
 
-        lines = ["student_id,course_id,score,date"]
+        The CSV file contains one header row and one row for each grade.
+        Each row stores the student ID, course ID, score, and date.
 
-        for grade in self.grades:
-            line = (
-                f"{grade.student.student_id},"
-                f"{grade.course.course_id},"
-                f"{grade.score},"
-                f"{grade.date}"
-            )
+        Args:
+            file_path: The path where the CSV file should be saved.
 
-            lines.append(line)
+        Raises:
+            PersistenceError: If the CSV file cannot be written.
+        """
 
-        csv_text = "\n".join(lines)
-        path.write_text(csv_text, encoding="utf-8")
+        try:
+            path = Path(file_path)
+
+            lines = ["student_id,course_id,score,date"]
+
+            for grade in self.grades:
+                line = (
+                    f"{grade.student.student_id},"
+                    f"{grade.course.course_id},"
+                    f"{grade.score},"
+                    f"{grade.date}"
+                )
+
+                lines.append(line)
+
+            csv_text = "\n".join(lines)
+            path.write_text(csv_text, encoding="utf-8")
+
+        except OSError as error:
+            raise PersistenceError(
+                f"Could not write CSV file: {file_path}"
+            ) from error
+
+    # ========================================================
+    # CSV Import: Import Grades from CSV File
+    # ========================================================
 
     def import_grades_from_csv(self, file_path: str) -> dict:
-        """Imports grades from a CSV file and returns an import report."""
-        path = Path(file_path)
-        lines = path.read_text(encoding="utf-8").splitlines()
+        """Import grades from a CSV file and return an import report.
+
+        The method reads a CSV file line by line.
+        Valid lines are converted into Grade objects.
+        Invalid lines are skipped and stored in the error report.
+
+        The returned report contains:
+        - imported: number of successfully imported grades
+        - skipped: number of skipped lines
+        - errors: list of error messages
+
+        Args:
+            file_path: The path of the CSV file that should be imported.
+
+        Returns:
+            A dictionary with import statistics and error messages.
+
+        Raises:
+            PersistenceError: If the CSV file cannot be read.
+        """
+
+        try:
+            path = Path(file_path)
+            lines = path.read_text(encoding="utf-8").splitlines()
+
+        except OSError as error:
+            raise PersistenceError(
+                f"Could not read CSV file: {file_path}"
+            ) from error
 
         report = {
             "imported": 0,
