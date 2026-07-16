@@ -837,3 +837,667 @@ Das Diagramm kann Attribute, Methoden und Beziehungen zwischen den Klassen darst
 5. Daten zunächst in CSV- oder JSON-Dateien speichern.
 6. SQLite später als mögliche Erweiterung ergänzen.
 7. Alle wichtigen Funktionen mit automatisierten Tests absichern.
+---
+
+## Nützliche Links und weiterführende Ressourcen
+
+In diesem Abschnitt befinden sich hilfreiche Internetseiten, Dokumentationen,
+Lernplattformen und Entwicklungswerkzeuge, die bei der Erstellung und
+Weiterentwicklung des Student Grade Trackers unterstützen können.
+
+Die Links behandeln unter anderem Python-Grundlagen, objektorientierte
+Programmierung, Datenvalidierung, Datenpersistenz, Datenbanken, Git,
+Visualisierung und Projektdokumentation.
+
+---
+
+### Python-Grundlagen und offizielle Dokumentation
+
+#### Eingebaute Python-Funktionen
+
+[Python-Dokumentation – Built-in Functions](https://docs.python.org/3/library/functions.html)
+
+Diese Seite führt zur offiziellen Python-Dokumentation der eingebauten
+Funktionen.
+
+Dort werden unter anderem folgende Funktionen erklärt:
+
+- `print()` zur Ausgabe von Informationen
+- `input()` zur Eingabe von Daten
+- `len()` zum Ermitteln der Länge
+- `sum()` zum Addieren von Werten
+- `min()` und `max()` zum Ermitteln des kleinsten oder größten Wertes
+- `sorted()` zum Sortieren von Daten
+- `isinstance()` zum Prüfen eines Datentyps
+- `open()` zum Öffnen von Dateien
+
+Für den Student Grade Tracker sind diese Funktionen beispielsweise beim
+Sortieren von Studierenden, Berechnen von Durchschnittswerten und Einlesen
+von Dateien hilfreich.
+
+---
+
+#### Python-Datenmodell
+
+[Python-Dokumentation – Data Model](https://docs.python.org/3/reference/datamodel.html)
+
+Diese Seite führt zur offiziellen Beschreibung des Python-Datenmodells.
+
+Sie erklärt, wie Python-Klassen, Objekte, Attribute, Methoden und
+Spezialmethoden intern funktionieren.
+
+Für den Student Grade Tracker sind insbesondere folgende Spezialmethoden
+interessant:
+
+- `__init__()` zum Erstellen und Initialisieren eines Objekts
+- `__str__()` für eine gut lesbare Textdarstellung
+- `__repr__()` für eine technische Darstellung eines Objekts
+- `__eq__()` zum Vergleichen von Objekten
+- `__len__()` zum Bestimmen einer Länge
+
+Diese Methoden können zum Beispiel in den Klassen `Student`, `Course` und
+`GradeBook` verwendet werden.
+
+---
+
+#### String-Formatierung mit f-Strings
+
+[Python Morsels – String Formatting](https://www.pythonmorsels.com/string-formatting/)
+
+Diese Seite erklärt die Formatierung von Texten und Zahlen mit Python
+f-Strings.
+
+Beispiele für mögliche Anwendungen sind:
+
+- Ausgabe von Durchschnittsnoten
+- Formatierung von Dezimalstellen
+- Darstellung von Prozentwerten
+- Ausrichtung von Texten in Tabellen
+- übersichtliche Konsolenausgaben
+
+Für den Student Grade Tracker kann die String-Formatierung beispielsweise
+verwendet werden, um Notenlisten oder Berichte sauber darzustellen.
+
+---
+
+### Datenvalidierung und reguläre Ausdrücke
+
+#### Regex101
+
+[Regex101 – Reguläre Ausdrücke testen](https://regex101.com/)
+
+Regex101 ist ein Online-Werkzeug zum Erstellen, Testen und Erklären von
+regulären Ausdrücken.
+
+Ein regulärer Ausdruck kann beispielsweise zur Überprüfung folgender
+Eingaben verwendet werden:
+
+- E-Mail-Adressen
+- Studierenden-IDs
+- Kursnummern
+- bestimmte Textformate
+
+Die Seite zeigt direkt an, welche Bestandteile eines Textes von einem
+regulären Ausdruck erkannt werden. Zusätzlich werden die einzelnen Bestandteile
+des Ausdrucks erklärt.
+
+Für den Student Grade Tracker ist Regex101 besonders bei der Validierung von
+E-Mail-Adressen oder anderen Benutzereingaben hilfreich.
+
+---
+
+### CSV-Dateien und Datenpersistenz
+
+#### Python CSV-Modul
+
+[W3Schools – Python CSV Module](https://www.w3schools.com/python/ref_module_csv.asp)
+
+Diese Seite erklärt das eingebaute Python-Modul `csv`.
+
+Mit dem CSV-Modul können Daten in tabellarischer Form gespeichert und wieder
+eingelesen werden.
+
+Mögliche Anwendungen im Student Grade Tracker sind:
+
+- Studierende in einer CSV-Datei speichern
+- Kurse exportieren
+- Noten dauerhaft sichern
+- gespeicherte Daten erneut laden
+- Daten mit Tabellenkalkulationsprogrammen austauschen
+
+CSV-Dateien können beispielsweise mit Excel, LibreOffice Calc oder anderen
+Tabellenprogrammen geöffnet werden.
+
+---
+
+### JSON-Verarbeitung
+
+#### `object_pairs_hook` bei `json.loads()`
+
+[Stack Overflow – Understanding object_pairs_hook in json.loads()](https://stackoverflow.com/questions/54519626/understanding-object-pairs-hook-in-json-loads)
+
+Diese Seite erklärt die Option `object_pairs_hook` beim Einlesen von
+JSON-Daten mit `json.loads()`.
+
+Mit `object_pairs_hook` können Schlüssel-Wert-Paare verarbeitet werden,
+bevor daraus ein normales Python-Dictionary entsteht.
+
+Das kann beispielsweise hilfreich sein, wenn:
+
+- die Reihenfolge von Einträgen berücksichtigt werden soll
+- doppelte JSON-Schlüssel erkannt werden sollen
+- eine eigene Datenstruktur erzeugt werden soll
+- JSON-Daten gezielt umgewandelt werden sollen
+
+Für das normale Speichern und Laden von Daten reichen im Student Grade
+Tracker zunächst meist `json.dump()` und `json.load()` aus.
+
+`object_pairs_hook` ist deshalb eher ein weiterführendes Spezialthema.
+
+---
+
+### Datenbanken
+
+#### SQLite mit Python
+
+[Python-Dokumentation – sqlite3](https://docs.python.org/3/library/sqlite3.html)
+
+Diese Seite führt zur offiziellen Python-Dokumentation des Moduls `sqlite3`.
+
+SQLite ist eine kleine lokale Datenbank, die direkt in einer Datei gespeichert
+wird. Es muss dafür kein zusätzlicher Datenbankserver installiert werden.
+
+Mit SQLite können Daten:
+
+- gespeichert
+- gesucht
+- sortiert
+- geändert
+- gelöscht
+- miteinander verknüpft
+
+werden.
+
+Für den Student Grade Tracker könnten beispielsweise folgende Tabellen
+angelegt werden:
+
+- `students`
+- `courses`
+- `grades`
+- `enrollments`
+
+SQLite eignet sich gut als spätere Erweiterung des Projekts. Für eine erste
+Version sind CSV- oder JSON-Dateien meist einfacher umzusetzen.
+
+---
+
+### Programmablauf und Speicher visualisieren
+
+#### Python Tutor
+
+[Python Tutor – Python-Code visualisieren](https://pythontutor.com/visualize.html#mode=display)
+
+Python Tutor führt Python-Code Schritt für Schritt aus und zeigt den aktuellen
+Zustand des Programms grafisch an.
+
+Dabei werden unter anderem dargestellt:
+
+- Variablen
+- Listen
+- Dictionaries
+- Funktionsaufrufe
+- Rückgabewerte
+- Klassen und Objekte
+- Veränderungen während der Programmausführung
+
+Für den Student Grade Tracker kann Python Tutor dabei helfen, Methodenaufrufe,
+Schleifen, Listen und Objektbeziehungen besser zu verstehen.
+
+---
+
+#### Memory Graph
+
+[Memory Graph – Python-Objekte und Referenzen visualisieren](https://memory-graph.com/#breakpoints=8&continues=1&play)
+
+Memory Graph stellt Python-Objekte und ihre Beziehungen im Speicher grafisch
+dar.
+
+Dadurch wird sichtbar:
+
+- welche Variable auf welches Objekt verweist
+- welche Objekte miteinander verbunden sind
+- wie Listen und Dictionaries aufgebaut sind
+- wie Klasseninstanzen Beziehungen zueinander besitzen
+
+Im Student Grade Tracker kann Memory Graph beispielsweise die Beziehungen
+zwischen folgenden Klassen darstellen:
+
+- `Student`
+- `Course`
+- `Grade`
+- `GradeBook`
+
+Python Tutor konzentriert sich stärker auf den zeitlichen Ablauf eines
+Programms. Memory Graph konzentriert sich stärker auf die Struktur und die
+Beziehungen der Objekte im Speicher.
+
+---
+
+### UML und Projektdokumentation
+
+#### diagrams.net
+
+[diagrams.net – Diagramme und UML erstellen](https://app.diagrams.net/)
+
+diagrams.net ist ein kostenloses Werkzeug zum Erstellen von Diagrammen direkt
+im Browser.
+
+Damit können unter anderem folgende Diagramme erstellt werden:
+
+- UML-Klassendiagramme
+- Ablaufdiagramme
+- Aktivitätsdiagramme
+- Architekturübersichten
+- einfache Prozessdarstellungen
+
+Für den Student Grade Tracker kann diagrams.net verwendet werden, um Klassen,
+Attribute, Methoden und Beziehungen grafisch darzustellen.
+
+Beispielsweise können die Klassen `Student`, `Course`, `Grade` und `GradeBook`
+als UML-Klassendiagramm dokumentiert werden.
+
+---
+
+### Git und Versionsverwaltung
+
+#### Learn Git Branching
+
+[Learn Git Branching – deutsche Version](https://learngitbranching.js.org/?locale=de_DE)
+
+Learn Git Branching ist eine interaktive Lernplattform für Git.
+
+Git-Befehle können dort direkt eingegeben werden. Die Auswirkungen auf
+Branches und Commits werden grafisch dargestellt.
+
+Behandelt werden unter anderem:
+
+- `git branch`
+- `git switch`
+- `git checkout`
+- `git merge`
+- `git rebase`
+- `git cherry-pick`
+
+Die Seite eignet sich besonders gut, um Branches und Zusammenführungen
+anschaulich zu verstehen.
+
+---
+
+#### Pro Git
+
+[Pro Git – offizielles Git-Handbuch](https://git-scm.com/book/en/v2)
+
+Pro Git ist ein kostenlos verfügbares und umfassendes Fachbuch über Git.
+
+Es erklärt unter anderem:
+
+- Git-Repositories
+- Commits
+- Branches
+- Remotes
+- GitHub-Verbindungen
+- Merges
+- Rebasing
+- Tags
+- die interne Arbeitsweise von Git
+
+Das Buch eignet sich sowohl zum Lernen als auch als Nachschlagewerk.
+
+---
+
+### Benutzereingaben und Tastatursteuerung
+
+#### Auf eine Benutzereingabe warten
+
+[Pierian Training – How to Wait for a Keypress in Python](https://pieriantraining.com/how-to-wait-for-a-keypress-in-python/)
+
+Diese Seite zeigt verschiedene Möglichkeiten, ein Python-Programm anzuhalten,
+bis eine Taste gedrückt oder eine Eingabe bestätigt wurde.
+
+Für ein einfaches plattformübergreifendes Konsolenprogramm eignet sich häufig:
+
+```python
+input("Drücke Enter, um fortzufahren.")
+
+---
+
+## Nützliche Links und weiterführende Ressourcen
+
+In diesem Abschnitt befinden sich hilfreiche Internetseiten, Dokumentationen,
+Lernplattformen und Entwicklungswerkzeuge, die bei der Erstellung und
+Weiterentwicklung des Student Grade Trackers unterstützen können.
+
+Die Links behandeln unter anderem Python-Grundlagen, objektorientierte
+Programmierung, Datenvalidierung, Datenpersistenz, Datenbanken, Git,
+Visualisierung und Projektdokumentation.
+
+---
+
+### Python-Grundlagen und offizielle Dokumentation
+
+#### Eingebaute Python-Funktionen
+
+[Python-Dokumentation – Built-in Functions](https://docs.python.org/3/library/functions.html)
+
+Diese Seite führt zur offiziellen Python-Dokumentation der eingebauten
+Funktionen.
+
+Dort werden unter anderem folgende Funktionen erklärt:
+
+- `print()` zur Ausgabe von Informationen
+- `input()` zur Eingabe von Daten
+- `len()` zum Ermitteln der Länge
+- `sum()` zum Addieren von Werten
+- `min()` und `max()` zum Ermitteln des kleinsten oder größten Wertes
+- `sorted()` zum Sortieren von Daten
+- `isinstance()` zum Prüfen eines Datentyps
+- `open()` zum Öffnen von Dateien
+
+Für den Student Grade Tracker sind diese Funktionen beispielsweise beim
+Sortieren von Studierenden, Berechnen von Durchschnittswerten und Einlesen
+von Dateien hilfreich.
+
+---
+
+#### Python-Datenmodell
+
+[Python-Dokumentation – Data Model](https://docs.python.org/3/reference/datamodel.html)
+
+Diese Seite führt zur offiziellen Beschreibung des Python-Datenmodells.
+
+Sie erklärt, wie Python-Klassen, Objekte, Attribute, Methoden und
+Spezialmethoden intern funktionieren.
+
+Für den Student Grade Tracker sind insbesondere folgende Spezialmethoden
+interessant:
+
+- `__init__()` zum Erstellen und Initialisieren eines Objekts
+- `__str__()` für eine gut lesbare Textdarstellung
+- `__repr__()` für eine technische Darstellung eines Objekts
+- `__eq__()` zum Vergleichen von Objekten
+- `__len__()` zum Bestimmen einer Länge
+
+Diese Methoden können zum Beispiel in den Klassen `Student`, `Course` und
+`GradeBook` verwendet werden.
+
+---
+
+#### String-Formatierung mit f-Strings
+
+[Python Morsels – String Formatting](https://www.pythonmorsels.com/string-formatting/)
+
+Diese Seite erklärt die Formatierung von Texten und Zahlen mit Python
+f-Strings.
+
+Beispiele für mögliche Anwendungen sind:
+
+- Ausgabe von Durchschnittsnoten
+- Formatierung von Dezimalstellen
+- Darstellung von Prozentwerten
+- Ausrichtung von Texten in Tabellen
+- übersichtliche Konsolenausgaben
+
+Für den Student Grade Tracker kann die String-Formatierung beispielsweise
+verwendet werden, um Notenlisten oder Berichte sauber darzustellen.
+
+---
+
+### Datenvalidierung und reguläre Ausdrücke
+
+#### Regex101
+
+[Regex101 – Reguläre Ausdrücke testen](https://regex101.com/)
+
+Regex101 ist ein Online-Werkzeug zum Erstellen, Testen und Erklären von
+regulären Ausdrücken.
+
+Ein regulärer Ausdruck kann beispielsweise zur Überprüfung folgender
+Eingaben verwendet werden:
+
+- E-Mail-Adressen
+- Studierenden-IDs
+- Kursnummern
+- bestimmte Textformate
+
+Die Seite zeigt direkt an, welche Bestandteile eines Textes von einem
+regulären Ausdruck erkannt werden. Zusätzlich werden die einzelnen Bestandteile
+des Ausdrucks erklärt.
+
+Für den Student Grade Tracker ist Regex101 besonders bei der Validierung von
+E-Mail-Adressen oder anderen Benutzereingaben hilfreich.
+
+---
+
+### CSV-Dateien und Datenpersistenz
+
+#### Python CSV-Modul
+
+[W3Schools – Python CSV Module](https://www.w3schools.com/python/ref_module_csv.asp)
+
+Diese Seite erklärt das eingebaute Python-Modul `csv`.
+
+Mit dem CSV-Modul können Daten in tabellarischer Form gespeichert und wieder
+eingelesen werden.
+
+Mögliche Anwendungen im Student Grade Tracker sind:
+
+- Studierende in einer CSV-Datei speichern
+- Kurse exportieren
+- Noten dauerhaft sichern
+- gespeicherte Daten erneut laden
+- Daten mit Tabellenkalkulationsprogrammen austauschen
+
+CSV-Dateien können beispielsweise mit Excel, LibreOffice Calc oder anderen
+Tabellenprogrammen geöffnet werden.
+
+---
+
+### JSON-Verarbeitung
+
+#### `object_pairs_hook` bei `json.loads()`
+
+[Stack Overflow – Understanding object_pairs_hook in json.loads()](https://stackoverflow.com/questions/54519626/understanding-object-pairs-hook-in-json-loads)
+
+Diese Seite erklärt die Option `object_pairs_hook` beim Einlesen von
+JSON-Daten mit `json.loads()`.
+
+Mit `object_pairs_hook` können Schlüssel-Wert-Paare verarbeitet werden,
+bevor daraus ein normales Python-Dictionary entsteht.
+
+Das kann beispielsweise hilfreich sein, wenn:
+
+- die Reihenfolge von Einträgen berücksichtigt werden soll
+- doppelte JSON-Schlüssel erkannt werden sollen
+- eine eigene Datenstruktur erzeugt werden soll
+- JSON-Daten gezielt umgewandelt werden sollen
+
+Für das normale Speichern und Laden von Daten reichen im Student Grade
+Tracker zunächst meist `json.dump()` und `json.load()` aus.
+
+`object_pairs_hook` ist deshalb eher ein weiterführendes Spezialthema.
+
+---
+
+### Datenbanken
+
+#### SQLite mit Python
+
+[Python-Dokumentation – sqlite3](https://docs.python.org/3/library/sqlite3.html)
+
+Diese Seite führt zur offiziellen Python-Dokumentation des Moduls `sqlite3`.
+
+SQLite ist eine kleine lokale Datenbank, die direkt in einer Datei gespeichert
+wird. Es muss dafür kein zusätzlicher Datenbankserver installiert werden.
+
+Mit SQLite können Daten:
+
+- gespeichert
+- gesucht
+- sortiert
+- geändert
+- gelöscht
+- miteinander verknüpft
+
+werden.
+
+Für den Student Grade Tracker könnten beispielsweise folgende Tabellen
+angelegt werden:
+
+- `students`
+- `courses`
+- `grades`
+- `enrollments`
+
+SQLite eignet sich gut als spätere Erweiterung des Projekts. Für eine erste
+Version sind CSV- oder JSON-Dateien meist einfacher umzusetzen.
+
+---
+
+### Programmablauf und Speicher visualisieren
+
+#### Python Tutor
+
+[Python Tutor – Python-Code visualisieren](https://pythontutor.com/visualize.html#mode=display)
+
+Python Tutor führt Python-Code Schritt für Schritt aus und zeigt den aktuellen
+Zustand des Programms grafisch an.
+
+Dabei werden unter anderem dargestellt:
+
+- Variablen
+- Listen
+- Dictionaries
+- Funktionsaufrufe
+- Rückgabewerte
+- Klassen und Objekte
+- Veränderungen während der Programmausführung
+
+Für den Student Grade Tracker kann Python Tutor dabei helfen, Methodenaufrufe,
+Schleifen, Listen und Objektbeziehungen besser zu verstehen.
+
+---
+
+#### Memory Graph
+
+[Memory Graph – Python-Objekte und Referenzen visualisieren](https://memory-graph.com/#breakpoints=8&continues=1&play)
+
+Memory Graph stellt Python-Objekte und ihre Beziehungen im Speicher grafisch
+dar.
+
+Dadurch wird sichtbar:
+
+- welche Variable auf welches Objekt verweist
+- welche Objekte miteinander verbunden sind
+- wie Listen und Dictionaries aufgebaut sind
+- wie Klasseninstanzen Beziehungen zueinander besitzen
+
+Im Student Grade Tracker kann Memory Graph beispielsweise die Beziehungen
+zwischen folgenden Klassen darstellen:
+
+- `Student`
+- `Course`
+- `Grade`
+- `GradeBook`
+
+Python Tutor konzentriert sich stärker auf den zeitlichen Ablauf eines
+Programms. Memory Graph konzentriert sich stärker auf die Struktur und die
+Beziehungen der Objekte im Speicher.
+
+---
+
+### UML und Projektdokumentation
+
+#### diagrams.net
+
+[diagrams.net – Diagramme und UML erstellen](https://app.diagrams.net/)
+
+diagrams.net ist ein kostenloses Werkzeug zum Erstellen von Diagrammen direkt
+im Browser.
+
+Damit können unter anderem folgende Diagramme erstellt werden:
+
+- UML-Klassendiagramme
+- Ablaufdiagramme
+- Aktivitätsdiagramme
+- Architekturübersichten
+- einfache Prozessdarstellungen
+
+Für den Student Grade Tracker kann diagrams.net verwendet werden, um Klassen,
+Attribute, Methoden und Beziehungen grafisch darzustellen.
+
+Beispielsweise können die Klassen `Student`, `Course`, `Grade` und `GradeBook`
+als UML-Klassendiagramm dokumentiert werden.
+
+---
+
+### Git und Versionsverwaltung
+
+#### Learn Git Branching
+
+[Learn Git Branching – deutsche Version](https://learngitbranching.js.org/?locale=de_DE)
+
+Learn Git Branching ist eine interaktive Lernplattform für Git.
+
+Git-Befehle können dort direkt eingegeben werden. Die Auswirkungen auf
+Branches und Commits werden grafisch dargestellt.
+
+Behandelt werden unter anderem:
+
+- `git branch`
+- `git switch`
+- `git checkout`
+- `git merge`
+- `git rebase`
+- `git cherry-pick`
+
+Die Seite eignet sich besonders gut, um Branches und Zusammenführungen
+anschaulich zu verstehen.
+
+---
+
+#### Pro Git
+
+[Pro Git – offizielles Git-Handbuch](https://git-scm.com/book/en/v2)
+
+Pro Git ist ein kostenlos verfügbares und umfassendes Fachbuch über Git.
+
+Es erklärt unter anderem:
+
+- Git-Repositories
+- Commits
+- Branches
+- Remotes
+- GitHub-Verbindungen
+- Merges
+- Rebasing
+- Tags
+- die interne Arbeitsweise von Git
+
+Das Buch eignet sich sowohl zum Lernen als auch als Nachschlagewerk.
+
+---
+
+### Benutzereingaben und Tastatursteuerung
+
+#### Auf eine Benutzereingabe warten
+
+[Pierian Training – How to Wait for a Keypress in Python](https://pieriantraining.com/how-to-wait-for-a-keypress-in-python/)
+
+Diese Seite zeigt verschiedene Möglichkeiten, ein Python-Programm anzuhalten,
+bis eine Taste gedrückt oder eine Eingabe bestätigt wurde.
+
+Für ein einfaches plattformübergreifendes Konsolenprogramm eignet sich häufig:
+
+```python
+input("Drücke Enter, um fortzufahren.")
+    
