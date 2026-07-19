@@ -60,10 +60,10 @@ class DuplicateEntryError(ValueError):
 class PersistenceError(Exception):
     """Raise this error when saving or loading data fails.
 
-    This exception is used for file-related problems, for example:
-    missing files, invalid JSON content, broken CSV files, or invalid
-    file paths.
+    This exception is used for file-related and database-related problems,
+    for example: missing files, invalid JSON content, broken CSV files,
+    invalid file paths, or failed SQLite operations.
 
     It inherits directly from Exception because persistence errors
-    are not simple value errors. They are technical file handling errors.
+    are not simple value errors. They are technical storage errors.
     """
