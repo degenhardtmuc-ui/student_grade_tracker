@@ -10,5 +10,7 @@ The tests check:
 - custom exceptions
 - JSON persistence
 - CSV import and export
+- SQLite database persistence
+- interchangeable storage classes
 - basic project setup
 """

@@ -11,9 +11,10 @@ It manages:
 - search functions
 - JSON saving and loading
 - CSV export and import
+- selectable in-memory or SQLite storage
 
-The goal of this module is to keep all grade book data in one place
-and provide clear methods for working with this data.
+The goal of this module is to provide clear methods for working with
+grade book data while a GradeStore handles the actual storage.
 """
 
 # ============================================================
@@ -25,13 +26,9 @@ import re
 from pathlib import Path
 
 from notenverwaltung.course import Course
-from notenverwaltung.exceptions import (
-    CourseNotFoundError,
-    DuplicateEntryError,
-    PersistenceError,
-    StudentNotFoundError,
-)
+from notenverwaltung.exceptions import PersistenceError
 from notenverwaltung.grade import Grade
+from notenverwaltung.grade_store import GradeStore, InMemoryGradeStore
 from notenverwaltung.student import Student
 
 
@@ -43,7 +40,8 @@ class GradeBook:
     """Manage students, courses, grades, statistics, and file operations.
 
     The GradeBook class is the central class of the application.
-    It stores all students, all courses, and all recorded grades.
+    It coordinates all students, courses, and recorded grades.
+    A GradeStore object handles the actual data storage.
 
     It also provides methods to:
     - add students and courses
@@ -61,18 +59,46 @@ class GradeBook:
     # Initialization: Create an Empty GradeBook
     # ========================================================
 
-    def __init__(self) -> None:
-        """Create an empty GradeBook object.
+    def __init__(self, store: GradeStore | None = None) -> None:
+        """Create a GradeBook with a selectable storage implementation.
 
-        Three empty collections are created:
-        - students: stores Student objects by student ID
-        - courses: stores Course objects by course ID
-        - grades: stores all Grade objects in a list
+        Args:
+            store: Storage object used for students, courses, and grades.
+                If no store is provided, InMemoryGradeStore is used.
+
+        Dependency injection makes it possible to use the same GradeBook
+        logic with Python collections or with a SQLite database.
         """
 
-        self.students: dict[str, Student] = {}
-        self.courses: dict[str, Course] = {}
-        self.grades: list[Grade] = []
+        self.store = store if store is not None else InMemoryGradeStore()
+
+    # ========================================================
+    # Storage Properties: Read Complete Collections
+    # ========================================================
+
+    @property
+    def students(self) -> dict[str, Student]:
+        """Return all students as a dictionary keyed by student ID."""
+
+        return {
+            student.student_id: student
+            for student in self.store.get_all_students()
+        }
+
+    @property
+    def courses(self) -> dict[str, Course]:
+        """Return all courses as a dictionary keyed by course ID."""
+
+        return {
+            course.course_id: course
+            for course in self.store.get_all_courses()
+        }
+
+    @property
+    def grades(self) -> list[Grade]:
+        """Return a defensive copy of all stored grades."""
+
+        return self.store.get_all_grades()
 
     # ========================================================
     # Student Management: Add Students
@@ -88,12 +114,7 @@ class GradeBook:
         students in the GradeBook.
         """
 
-        if student.student_id in self.students:
-            raise DuplicateEntryError(
-                f"Student with ID {student.student_id} already exists."
-            )
-
-        self.students[student.student_id] = student
+        self.store.add_student(student)
 
     # ========================================================
     # Course Management: Add Courses
@@ -109,12 +130,7 @@ class GradeBook:
         courses in the GradeBook.
         """
 
-        if course.course_id in self.courses:
-            raise DuplicateEntryError(
-                f"Course with ID {course.course_id} already exists."
-            )
-
-        self.courses[course.course_id] = course
+        self.store.add_course(course)
 
     # ========================================================
     # Grade Management: Record Grades
@@ -149,18 +165,8 @@ class GradeBook:
             CourseNotFoundError: If the course ID does not exist.
         """
 
-        if student_id not in self.students:
-            raise StudentNotFoundError(
-                f"Student with ID {student_id} does not exist."
-            )
-
-        if course_id not in self.courses:
-            raise CourseNotFoundError(
-                f"Course with ID {course_id} does not exist."
-            )
-
-        student = self.students[student_id]
-        course = self.courses[course_id]
+        student = self.store.get_student(student_id)
+        course = self.store.get_course(course_id)
 
         grade = Grade(
             student=student,
@@ -170,7 +176,7 @@ class GradeBook:
             notes=notes,
         )
 
-        self.grades.append(grade)
+        self.store.record_grade(grade)
 
         return grade
 
@@ -194,16 +200,7 @@ class GradeBook:
             StudentNotFoundError: If the student ID does not exist.
         """
 
-        if student_id not in self.students:
-            raise StudentNotFoundError(
-                f"Student with ID {student_id} does not exist."
-            )
-
-        return [
-            grade
-            for grade in self.grades
-            if grade.student.student_id == student_id
-        ]
+        return self.store.get_student_grades(student_id)
 
     # ========================================================
     # Grade Lookup: Get Grades by Course
@@ -225,16 +222,7 @@ class GradeBook:
             CourseNotFoundError: If the course ID does not exist.
         """
 
-        if course_id not in self.courses:
-            raise CourseNotFoundError(
-                f"Course with ID {course_id} does not exist."
-            )
-
-        return [
-            grade
-            for grade in self.grades
-            if grade.course.course_id == course_id
-        ]
+        return self.store.get_course_grades(course_id)
 
     # ========================================================
     # Statistics: Calculate Student Average
