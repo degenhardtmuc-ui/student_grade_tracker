@@ -17,7 +17,7 @@ def create_sample_gradebook() -> GradeBook:
         Student("S001", "Anna", "Schmidt", "anna@example.com")
     )
     gradebook.add_student(
-        Student("S002", "Ben", "Meyer", "ben@example.com")
+        Student("S002", "Daniel", "Degenhardt", "daniel@example.com")
     )
 
     gradebook.add_course(
@@ -71,7 +71,7 @@ def test_text_course_report() -> None:
     assert "COURSE REPORT" in report
     assert "Intro to Computer Science" in report
     assert "Anna Schmidt" in report
-    assert "Ben Meyer" in report
+    assert "Daniel Degenhardt" in report
     assert "Average score: 62.50/100.0" in report
     assert "Pass rate: 50.00%" in report
 
