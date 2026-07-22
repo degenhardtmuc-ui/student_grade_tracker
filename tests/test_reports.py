@@ -1,13 +1,20 @@
 """Tests for the report generator classes."""
 
+import csv
+from io import StringIO
+
 import pytest
 
 from notenverwaltung.course import Course
 from notenverwaltung.gradebook import GradeBook
 from notenverwaltung.reports.base import ReportGenerator
+from notenverwaltung.reports.csv_report import CsvReportGenerator
 from notenverwaltung.reports.text_report import TextReportGenerator
 from notenverwaltung.student import Student
 
+def read_csv_rows(report: str) -> list[dict[str, str]]:
+    """Read generated CSV text as dictionaries."""
+    return list(csv.DictReader(StringIO(report)))
 
 def create_sample_gradebook() -> GradeBook:
     """Create a small grade book used by the report tests."""
@@ -88,3 +95,45 @@ def test_text_summary_report() -> None:
     assert "Courses: 1" in report
     assert "Grades: 2" in report
     assert "Intro to Computer Science" in report
+
+def test_csv_student_report() -> None:
+    """Test the CSV report for one student."""
+    gradebook = create_sample_gradebook()
+    generator = CsvReportGenerator(gradebook)
+
+    rows = read_csv_rows(generator.student_report("S001"))
+
+    assert len(rows) == 1
+    assert rows[0]["student_id"] == "S001"
+    assert rows[0]["student_name"] == "Anna Schmidt"
+    assert rows[0]["course_name"] == "Intro to Computer Science"
+    assert rows[0]["percentage"] == "85.00"
+    assert rows[0]["status"] == "Passed"
+
+
+def test_csv_course_report() -> None:
+    """Test the CSV report for one course."""
+    gradebook = create_sample_gradebook()
+    generator = CsvReportGenerator(gradebook)
+
+    rows = read_csv_rows(generator.course_report("CS101"))
+
+    assert len(rows) == 2
+    assert rows[0]["student_name"] == "Anna Schmidt"
+    assert rows[1]["student_name"] == "Daniel Degenhardt"
+    assert rows[0]["status"] == "Passed"
+    assert rows[1]["status"] == "Failed"
+
+
+def test_csv_summary_report() -> None:
+    """Test the CSV summary for the complete grade book."""
+    gradebook = create_sample_gradebook()
+    generator = CsvReportGenerator(gradebook)
+
+    rows = read_csv_rows(generator.summary_report())
+
+    assert len(rows) == 1
+    assert rows[0]["course_id"] == "CS101"
+    assert rows[0]["grade_count"] == "2"
+    assert rows[0]["average_score"] == "62.50"
+    assert rows[0]["pass_rate"] == "50.00"
