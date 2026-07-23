@@ -9,6 +9,10 @@ from notenverwaltung.course import Course
 from notenverwaltung.gradebook import GradeBook
 from notenverwaltung.reports.text_report import TextReportGenerator
 from notenverwaltung.student import Student
+from notenverwaltung.exceptions import (
+    CourseNotFoundError,
+    StudentNotFoundError,
+)
 
 # app.py liegt im Ordner notenverwaltung.
 # parent.parent führt deshalb zum Projektordner.
@@ -57,19 +61,27 @@ def create_demo_gradebook() -> GradeBook:
 
 def generate_text_report(report_type: str, identifier: str) -> str:
     """Generate a text report for the selected report type."""
+
     gradebook = create_demo_gradebook()
     generator = TextReportGenerator(gradebook)
 
-    if report_type == "Student":
-        return generator.student_report(identifier)
+    try:
+        if report_type == "Student":
+            return generator.student_report(identifier)
 
-    if report_type == "Course":
-        return generator.course_report(identifier)
+        if report_type == "Course":
+            return generator.course_report(identifier)
 
-    if report_type == "Summary":
-        return generator.summary_report()
+        if report_type == "Summary":
+            return generator.summary_report()
 
-    return "Unknown report type."
+        return "Unknown report type."
+
+    except StudentNotFoundError:
+        return f"Student mit ID {identifier} ist nicht immatrikuliert."
+
+    except CourseNotFoundError:
+        return f"Course mit ID {identifier} exsistiert nicht."
 
 def load_table(table_name: str) -> pd.DataFrame:
     """Read one permitted table from the SQLite database."""
@@ -91,7 +103,12 @@ def load_table(table_name: str) -> pd.DataFrame:
     with sqlite3.connect(DATABASE_PATH) as connection:
         query = f"SELECT * FROM {table_name}"
         return pd.read_sql_query(query, connection)
-
+        
+report_choices = [
+    ("S001 - Anna Schmidt", "S001"),
+    ("S002 - Daniel Degenhardt", "S002"),
+    ("CS101 - Intro to Computer Science", "CS101"),
+]
 
 with gr.Blocks(title="Student Grade Tracker") as app:
     gr.Markdown("# Student Grade Tracker")
@@ -143,10 +160,10 @@ with gr.Blocks(title="Student Grade Tracker") as app:
             label="Report type",
         )
 
-        identifier_input = gr.Textbox(
+        identifier_input = gr.Dropdown(
+            choices=report_choices,
             value="S001",
-            label="Student ID or Course ID",
-            placeholder="Example: S001 or CS101",
+            label="Student oder Kurs auswählen",
         )
 
         report_button = gr.Button("Report erzeugen")
