@@ -5,7 +5,10 @@ from pathlib import Path
 
 import gradio as gr
 import pandas as pd
-
+from notenverwaltung.course import Course
+from notenverwaltung.gradebook import GradeBook
+from notenverwaltung.reports.text_report import TextReportGenerator
+from notenverwaltung.student import Student
 
 # app.py liegt im Ordner notenverwaltung.
 # parent.parent führt deshalb zum Projektordner.
@@ -22,6 +25,51 @@ def welcome(name: str) -> str:
 
     return f"Willkommen bei der Notenverwaltung, {name}!"
 
+def create_demo_gradebook() -> GradeBook:
+    """Create a small demo gradebook for the report tab."""
+    gradebook = GradeBook()
+
+    gradebook.add_student(
+        Student("S001", "Anna", "Schmidt", "anna@example.com")
+    )
+    gradebook.add_student(
+        Student("S002", "Daniel", "Degenhardt", "daniel@example.com")
+    )
+
+    gradebook.add_course(
+        Course("CS101", "Intro to Computer Science")
+    )
+
+    gradebook.record_grade(
+        "S001",
+        "CS101",
+        85.0,
+        "2026-07-07",
+    )
+    gradebook.record_grade(
+        "S002",
+        "CS101",
+        40.0,
+        "2026-07-08",
+    )
+
+    return gradebook
+
+def generate_text_report(report_type: str, identifier: str) -> str:
+    """Generate a text report for the selected report type."""
+    gradebook = create_demo_gradebook()
+    generator = TextReportGenerator(gradebook)
+
+    if report_type == "Student":
+        return generator.student_report(identifier)
+
+    if report_type == "Course":
+        return generator.course_report(identifier)
+
+    if report_type == "Summary":
+        return generator.summary_report()
+
+    return "Unknown report type."
 
 def load_table(table_name: str) -> pd.DataFrame:
     """Read one permitted table from the SQLite database."""
@@ -85,7 +133,34 @@ with gr.Blocks(title="Student Grade Tracker") as app:
             inputs=table_selection,
             outputs=database_output,
         )
+    
+    with gr.Tab("Reports"):
+        gr.Markdown("## Text Reports")
 
+        report_type_input = gr.Radio(
+            choices=["Student", "Course", "Summary"],
+            value="Student",
+            label="Report type",
+        )
 
+        identifier_input = gr.Textbox(
+            value="S001",
+            label="Student ID or Course ID",
+            placeholder="Example: S001 or CS101",
+        )
+
+        report_button = gr.Button("Report erzeugen")
+
+        report_output = gr.Textbox(
+            label="Report",
+            lines=12,
+        )
+
+        report_button.click(
+            fn=generate_text_report,
+            inputs=[report_type_input, identifier_input],
+            outputs=report_output,
+        )
+        
 if __name__ == "__main__":
     app.launch()
