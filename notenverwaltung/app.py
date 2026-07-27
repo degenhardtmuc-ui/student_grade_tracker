@@ -136,6 +136,20 @@ with gr.Blocks(title="Student Grade Tracker") as app:
     gr.Markdown("# Student Grade Tracker")
     gr.Markdown("Notenverwaltung mit Python, SQLite und Gradio")
 
+    with gr.Tab("Dashboard"):
+        gr.Markdown("## Dashboard")
+        gr.Markdown(
+            """
+            | Kennzahl | Aktueller Wert |
+            |---|---:|
+            | Studenten | 2 |
+            | Kurse | 1 |
+            | Erfasste Noten | 2 |
+            | Gesamtdurchschnitt | 62,5 % |
+            | Bestehensquote | 50 % |
+            """
+        )
+        
     with gr.Tab("Begrüßung"):
         name_input = gr.Textbox(label="Name")
         welcome_button = gr.Button(
