@@ -83,6 +83,25 @@ def generate_text_report(report_type: str, identifier: str) -> str:
     except CourseNotFoundError:
         return f"Course mit ID {identifier} exsistiert nicht."
 
+def generate_selected_report(
+    report_type: str,
+    student_id: str,
+    course_id: str,
+) -> str:
+    """Select the correct identifier and generate the requested report."""
+
+    if report_type == "Student":
+        return generate_text_report("Student", student_id)
+
+    if report_type == "Course":
+        return generate_text_report("Course", course_id)
+
+    if report_type == "Summary":
+        return generate_text_report("Summary", "")
+
+    return "Unbekannter Report-Typ."
+
+
 def load_table(table_name: str) -> pd.DataFrame:
     """Read one permitted table from the SQLite database."""
 
@@ -104,9 +123,12 @@ def load_table(table_name: str) -> pd.DataFrame:
         query = f"SELECT * FROM {table_name}"
         return pd.read_sql_query(query, connection)
         
-report_choices = [
+student_choices = [
     ("S001 - Anna Schmidt", "S001"),
     ("S002 - Daniel Degenhardt", "S002"),
+]
+
+course_choices = [
     ("CS101 - Intro to Computer Science", "CS101"),
 ]
 
@@ -160,10 +182,16 @@ with gr.Blocks(title="Student Grade Tracker") as app:
             label="Report type",
         )
 
-        identifier_input = gr.Dropdown(
-            choices=report_choices,
+        student_input = gr.Dropdown(
+            choices=student_choices,
             value="S001",
-            label="Student oder Kurs auswählen",
+            label="Student auswählen",
+        )
+
+        course_input = gr.Dropdown(
+            choices=course_choices,
+            value="CS101",
+            label="Kurs auswählen",
         )
 
         report_button = gr.Button("Report erzeugen")
@@ -174,10 +202,13 @@ with gr.Blocks(title="Student Grade Tracker") as app:
         )
 
         report_button.click(
-            fn=generate_text_report,
-            inputs=[report_type_input, identifier_input],
+            fn=generate_selected_report,
+            inputs=[
+                report_type_input,
+                student_input,
+                course_input,
+            ],
             outputs=report_output,
         )
-        
 if __name__ == "__main__":
     app.launch()
