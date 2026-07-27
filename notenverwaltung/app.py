@@ -60,26 +60,46 @@ def create_demo_gradebook() -> GradeBook:
     return gradebook
     
 def generate_dashboard() -> str:
-    """Generate the dashboard values from the current gradebook."""
-    gradebook = create_demo_gradebook()
+    """Generate dashboard values from the SQLite database."""
 
-    student_count = len(gradebook.students)
-    course_count = len(gradebook.courses)
-    grade_count = len(gradebook.grades)
+    if not DATABASE_PATH.exists():
+        return f"Datenbank nicht gefunden: {DATABASE_PATH}"
 
-    if grade_count > 0:
-        total_percentage = sum(
-            grade.percentage for grade in gradebook.grades
-        )
-        overall_average = total_percentage / grade_count
+    with sqlite3.connect(DATABASE_PATH) as connection:
+        student_count = connection.execute(
+            "SELECT COUNT(*) FROM students"
+        ).fetchone()[0]
 
-        passed_count = sum(
-            1 for grade in gradebook.grades if grade.is_passing
-        )
-        pass_rate = passed_count / grade_count * 100
-    else:
-        overall_average = 0.0
-        pass_rate = 0.0
+        course_count = connection.execute(
+            "SELECT COUNT(*) FROM courses"
+        ).fetchone()[0]
+
+        grade_count = connection.execute(
+            "SELECT COUNT(*) FROM grades"
+        ).fetchone()[0]
+
+        statistics = connection.execute(
+            """
+            SELECT
+                COALESCE(AVG(g.score / c.max_grade * 100), 0),
+                COALESCE(
+                    AVG(
+                        CASE
+                            WHEN g.score >= c.passing_grade
+                            THEN 100.0
+                            ELSE 0.0
+                        END
+                    ),
+                    0
+                )
+            FROM grades AS g
+            JOIN courses AS c
+                ON g.course_id = c.course_id
+            """
+        ).fetchone()
+
+    overall_average = statistics[0]
+    pass_rate = statistics[1]
 
     return f"""
 | Kennzahl | Aktueller Wert |
