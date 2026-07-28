@@ -110,7 +110,58 @@ def generate_dashboard() -> str:
 | Gesamtdurchschnitt | {overall_average:.1f} % |
 | Bestehensquote | {pass_rate:.1f} % |
 """
-    
+
+def generate_pass_chart() -> pd.DataFrame:
+    """Generate pass and fail statistics from the SQLite database."""
+
+    if not DATABASE_PATH.exists():
+        return pd.DataFrame(
+            {
+                "Status": [],
+                "Anzahl": [],
+            }
+        )
+
+    with sqlite3.connect(DATABASE_PATH) as connection:
+        result = connection.execute(
+            """
+            SELECT
+                SUM(
+                    CASE
+                        WHEN g.score >= c.passing_grade
+                        THEN 1
+                        ELSE 0
+                    END
+                ),
+                SUM(
+                    CASE
+                        WHEN g.score < c.passing_grade
+                        THEN 1
+                        ELSE 0
+                    END
+                )
+            FROM grades AS g
+            JOIN courses AS c
+                ON g.course_id = c.course_id
+            """
+        ).fetchone()
+
+    passed_count = result[0] or 0
+    failed_count = result[1] or 0
+
+    return pd.DataFrame(
+        {
+            "Status": [
+                "Bestanden",
+                "Nicht bestanden",
+            ],
+            "Anzahl": [
+                passed_count,
+                failed_count,
+            ],
+        }
+    )    
+
 def generate_text_report(report_type: str, identifier: str) -> str:
     """Generate a text report for the selected report type."""
 
@@ -217,6 +268,20 @@ with gr.Blocks(title="Student Grade Tracker") as app:
     with gr.Tab("Dashboard"):
         gr.Markdown("## Dashboard")
         gr.Markdown(generate_dashboard())
+
+        gr.Markdown("### Bestehensverteilung")
+
+        gr.BarPlot(
+            value=generate_pass_chart(),
+            x="Status",
+            y="Anzahl",
+            color="Status",
+            title="Bestanden und nicht bestanden",
+            x_title="Status",
+            y_title="Anzahl der Noten",
+            y_lim=[0, 2],
+            height=400,
+        )
         
     with gr.Tab("Begrüßung"):
         name_input = gr.Textbox(label="Name")
