@@ -204,6 +204,25 @@ def generate_selected_report(
 
     return "Unbekannter Report-Typ."
 
+def update_report_inputs(report_type: str):
+    """Show only the dropdown required for the selected report type."""
+
+    if report_type == "Student":
+        return (
+            gr.update(visible=True),
+            gr.update(visible=False),
+        )
+
+    if report_type == "Course":
+        return (
+            gr.update(visible=False),
+            gr.update(visible=True),
+        )
+
+    return (
+        gr.update(visible=False),
+        gr.update(visible=False),
+    )
 
 def load_table(table_name: str) -> pd.DataFrame:
     """Read one permitted table from the SQLite database."""
@@ -354,7 +373,16 @@ with gr.Blocks(title="Student Grade Tracker") as app:
             value="CS101",
             label="Kurs auswählen",
         )
-
+        
+        report_type_input.change(
+            fn=update_report_inputs,
+            inputs=report_type_input,
+            outputs=[
+                student_input,
+                course_input,
+            ],
+        )
+        
         report_button = gr.Button("Report erzeugen")
 
         report_output = gr.Textbox(
