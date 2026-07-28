@@ -1,22 +1,60 @@
 # Student Grade Tracker / Notenverwaltung
 
-Dieses Repository enthält unser gemeinsames Python-Projekt **Student Grade Tracker**.
+Der **Student Grade Tracker** ist eine Notenverwaltung, die mit Python,
+SQLite und Gradio entwickelt wurde.
 
-Das Ziel des Projekts ist eine kleine Notenverwaltung.
+Die Anwendung verwaltet Studierende, Kurse und Noten. Sie berechnet
+Durchschnittswerte und Bestehensquoten, erzeugt Berichte und stellt wichtige
+Kennzahlen in einem Dashboard dar.
 
-Mit dem Programm sollen später zum Beispiel Studierende, Kurse und Noten verwaltet werden können.
+## Funktionen
 
-Wir arbeiten gemeinsam mit:
+- Studierende, Kurse und Noten verwalten
+- Daten dauerhaft in einer SQLite-Datenbank speichern
+- Datenbanktabellen in der Gradio-Oberfläche anzeigen
+- Tabellen `students`, `courses` und `grades` als CSV exportieren
+- Student Reports erzeugen
+- Course Reports erzeugen
+- Summary Reports erzeugen
+- getrennte Dropdown-Menüs für Studierende und Kurse verwenden
+- nicht benötigte Dropdown-Menüs automatisch ausblenden
+- Dashboard-Kennzahlen direkt aus SQLite berechnen
+- Anzahl der Studierenden, Kurse und Noten anzeigen
+- Gesamtdurchschnitt und Bestehensquote berechnen
+- Bestandene und nicht bestandene Noten in einem Diagramm darstellen
+- Fehler durch eigene Exceptions verständlich behandeln
+
+## Verwendete Technologien
 
 - Python
-- Git
-- GitHub
-- Visual Studio Code
-- Terminal auf dem Mac
+- SQLite
+- pandas
+- Gradio
+- pytest
+- Git und GitHub
+- uv
 
----
+## Projektstruktur
 
-# Teil 2: GitHub-Repository erstellen und verbinden
+```text
+student_grade_tracker/
+├── notenverwaltung/
+│   ├── reports/
+│   ├── app.py
+│   ├── course.py
+│   ├── database.py
+│   ├── exceptions.py
+│   ├── grade.py
+│   ├── grade_store.py
+│   ├── gradebook.py
+│   └── student.py
+├── tests/
+├── grade_tracker.db
+├── pyproject.toml
+├── requirements.txt
+└── README.md
+
+# Git- und GitHub-Lernnotizen
 
 Dieser Abschnitt erklärt, wie ein neues GitHub-Repository erstellt und auf dem eigenen Mac verbunden wird.
 
@@ -28,6 +66,7 @@ Alle anderen Teilnehmer werden danach eingeladen.
 ```
 
 ---
+
 
 ## 1. Neues Repository auf GitHub erstellen
 
