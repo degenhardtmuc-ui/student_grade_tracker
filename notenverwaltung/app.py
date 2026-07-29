@@ -5,6 +5,7 @@ from pathlib import Path
 
 import gradio as gr
 import pandas as pd
+import matplotlib.pyplot as plt
 from notenverwaltung.course import Course
 from notenverwaltung.gradebook import GradeBook
 from notenverwaltung.reports.text_report import TextReportGenerator
@@ -13,6 +14,7 @@ from notenverwaltung.exceptions import (
     CourseNotFoundError,
     StudentNotFoundError,
 )
+from notenverwaltung.auth import login_student, register_student
 
 # app.py liegt im Ordner notenverwaltung.
 # parent.parent führt deshalb zum Projektordner.
@@ -29,6 +31,36 @@ def welcome(name: str) -> str:
 
     return f"Willkommen bei der Notenverwaltung, {name}!"
 
+def register_from_form(
+    student_id: str,
+    first_name: str,
+    last_name: str,
+    email: str,
+    password: str,
+    password_repeat: str,
+) -> str:
+    """Verbinde das Registrierungsformular mit SQLite."""
+
+    return register_student(
+        DATABASE_PATH,
+        student_id,
+        first_name,
+        last_name,
+        email,
+        password,
+        password_repeat,
+    )
+
+
+def login_from_form(student_id: str, password: str) -> str:
+    """Verbinde das Anmeldeformular mit der Passwortprüfung."""
+
+    return login_student(
+        DATABASE_PATH,
+        student_id,
+        password,
+    )
+
 def create_demo_gradebook() -> GradeBook:
     """Create a small demo gradebook for the report tab."""
     gradebook = GradeBook()
@@ -43,7 +75,26 @@ def create_demo_gradebook() -> GradeBook:
     gradebook.add_course(
         Course("CS101", "Intro to Computer Science")
     )
+    gradebook.add_course(
+        Course("CS102", "Python Programming")
+    )
 
+    gradebook.add_course(
+        Course("DB101", "Database Fundamentals")
+    )
+
+    gradebook.record_grade(
+        "S001", "CS102", 92.0, "2026-07-10"
+    )
+    gradebook.record_grade(
+        "S002", "CS102", 76.0, "2026-07-10"
+    )
+    gradebook.record_grade(
+        "S001", "DB101", 88.0, "2026-07-12"
+    )
+    gradebook.record_grade(
+        "S002", "DB101", 67.0, "2026-07-12"
+    )
     gradebook.record_grade(
         "S001",
         "CS101",
@@ -58,7 +109,57 @@ def create_demo_gradebook() -> GradeBook:
     )
 
     return gradebook
-    
+
+def create_database_gradebook() -> GradeBook:
+    """Erzeuge ein GradeBook aus den Daten der SQLite-Datenbank."""
+    gradebook = GradeBook()
+
+    with sqlite3.connect(DATABASE_PATH) as connection:
+        students = connection.execute(
+            """
+            SELECT student_id, first_name, last_name, email
+            FROM students
+            ORDER BY student_id
+            """
+        ).fetchall()
+
+        courses = connection.execute(
+            """
+            SELECT course_id, name, max_grade, passing_grade
+            FROM courses
+            ORDER BY course_id
+            """
+        ).fetchall()
+
+        grades = connection.execute(
+            """
+            SELECT student_id, course_id, score, date, notes
+            FROM grades
+            ORDER BY date
+            """
+        ).fetchall()
+
+    for student_id, first_name, last_name, email in students:
+        gradebook.add_student(
+            Student(student_id, first_name, last_name, email)
+        )
+
+    for course_id, name, max_grade, passing_grade in courses:
+        gradebook.add_course(
+            Course(course_id, name, max_grade, passing_grade)
+        )
+
+    for student_id, course_id, score, date, notes in grades:
+        gradebook.record_grade(
+            student_id,
+            course_id,
+            score,
+            date,
+            notes or "",
+        )
+
+    return gradebook
+
 def generate_dashboard() -> str:
     """Generate dashboard values from the SQLite database."""
 
@@ -162,10 +263,31 @@ def generate_pass_chart() -> pd.DataFrame:
         }
     )    
 
-def generate_text_report(report_type: str, identifier: str) -> str:
-    """Generate a text report for the selected report type."""
+def generate_pass_plot():
+    """Erzeuge ein Balkendiagramm für bestandene und nicht bestandene Noten."""
+    chart_data = generate_pass_chart()
 
-    gradebook = create_demo_gradebook()
+    figure, axis = plt.subplots(figsize=(8, 4))
+
+    axis.bar(
+        chart_data["Status"],
+        chart_data["Anzahl"],
+        color=["#4C78A8", "#F58518"],
+    )
+
+    axis.set_title("Bestanden und nicht bestanden")
+    axis.set_xlabel("Status")
+    axis.set_ylabel("Anzahl der Noten")
+    axis.set_ylim(0, max(chart_data["Anzahl"].max() + 1, 2))
+    axis.grid(axis="y", alpha=0.25)
+
+    figure.tight_layout()
+    return figure
+
+def generate_text_report(report_type: str, identifier: str) -> str:                
+    """Generate a text report for the selected  report type."""
+
+    gradebook = create_database_gradebook()
     generator = TextReportGenerator(gradebook)
 
     try:
@@ -245,14 +367,42 @@ def load_table(table_name: str) -> pd.DataFrame:
         query = f"SELECT * FROM {table_name}"
         return pd.read_sql_query(query, connection)
         
-student_choices = [
-    ("S001 - Anna Schmidt", "S001"),
-    ("S002 - Daniel Degenhardt", "S002"),
-]
+def load_student_choices():
+    """Lade die Studentenauswahl aus SQLite."""
+    with sqlite3.connect(DATABASE_PATH) as connection:
+        students = connection.execute(
+            """
+            SELECT student_id, first_name, last_name
+            FROM students
+            ORDER BY student_id
+            """
+        ).fetchall()
 
-course_choices = [
-    ("CS101 - Intro to Computer Science", "CS101"),
-]
+    return [
+        (f"{student_id} - {first_name} {last_name}", student_id)
+        for student_id, first_name, last_name in students
+    ]
+
+
+def load_course_choices():
+    """Lade die Kursauswahl aus SQLite."""
+    with sqlite3.connect(DATABASE_PATH) as connection:
+        courses = connection.execute(
+            """
+            SELECT course_id, name
+            FROM courses
+            ORDER BY course_id
+            """
+        ).fetchall()
+
+    return [
+        (f"{course_id} - {name}", course_id)
+        for course_id, name in courses
+    ]
+
+
+student_choices = load_student_choices()
+course_choices = load_course_choices()
 
 def export_table_to_csv(table_name: str) -> str:
     """Export one permitted SQLite table as a CSV file."""
@@ -286,35 +436,98 @@ with gr.Blocks(title="Student Grade Tracker") as app:
 
     with gr.Tab("Dashboard"):
         gr.Markdown("## Dashboard")
-        gr.Markdown(generate_dashboard())
+
+        gr.Markdown(
+            generate_dashboard()
+        )
 
         gr.Markdown("### Bestehensverteilung")
 
-        gr.BarPlot(
-            value=generate_pass_chart(),
-            x="Status",
-            y="Anzahl",
-            color="Status",
-            title="Bestanden und nicht bestanden",
-            x_title="Status",
-            y_title="Anzahl der Noten",
-            y_lim=[0, 2],
-            height=400,
+        gr.Plot(
+            value=generate_pass_plot(),
+            label="Bestanden und nicht bestanden",
         )
-        
-    with gr.Tab("Begrüßung"):
-        name_input = gr.Textbox(label="Name")
-        welcome_button = gr.Button(
-            "Begrüßen",
-            variant="primary",
-        )
-        welcome_output = gr.Textbox(label="Ausgabe")
+    with gr.Tab("Zugang"):
+        gr.Markdown("## Studentenzugang")
 
-        welcome_button.click(
-            fn=welcome,
-            inputs=name_input,
-            outputs=welcome_output,
-        )
+        with gr.Row():
+            with gr.Column():
+                gr.Markdown("### Anmelden")
+
+                login_id_input = gr.Textbox(
+                    label="Student-ID"
+                )
+
+                login_password_input = gr.Textbox(
+                    label="Passwort",
+                    type="password",
+                )
+
+                login_button = gr.Button(
+                    "Anmelden",
+                    variant="primary",
+                )
+
+                login_output = gr.Textbox(
+                    label="Anmeldestatus",
+                    interactive=False,
+                )
+
+                login_button.click(
+                    fn=login_from_form,
+                    inputs=[
+                        login_id_input,
+                        login_password_input,
+                    ],
+                    outputs=login_output,
+                )
+
+            with gr.Column():
+                gr.Markdown("### Neu registrieren")
+
+                register_id_input = gr.Textbox(
+                    label="Student-ID"
+                )
+                register_first_name = gr.Textbox(
+                    label="Vorname"
+                )
+                register_last_name = gr.Textbox(
+                    label="Nachname"
+                )
+                register_email = gr.Textbox(
+                    label="E-Mail"
+                )
+                register_password = gr.Textbox(
+                    label="Passwort",
+                    type="password",
+                )
+                register_password_repeat = gr.Textbox(
+                    label="Passwort wiederholen",
+                    type="password",
+                )
+
+                register_button = gr.Button(
+                    "Registrieren",
+                    variant="primary",
+                )
+
+                register_output = gr.Textbox(
+                    label="Registrierungsstatus",
+                    interactive=False,
+                )
+
+                register_button.click(
+                    fn=register_from_form,
+                    inputs=[
+                        register_id_input,
+                        register_first_name,
+                        register_last_name,
+                        register_email,
+                        register_password,
+                        register_password_repeat,
+                    ],
+                    outputs=register_output,
+                )
 
     with gr.Tab("SQLite-Datenbank"):
         table_selection = gr.Dropdown(
@@ -399,5 +612,6 @@ with gr.Blocks(title="Student Grade Tracker") as app:
             ],
             outputs=report_output,
         )
+
 if __name__ == "__main__":
     app.launch()
