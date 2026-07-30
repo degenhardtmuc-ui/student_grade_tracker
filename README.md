@@ -1,72 +1,829 @@
-# Student Grade Tracker / Notenverwaltung
+# Projektbeschreibung – Student Grade Tracker
 
-Der **Student Grade Tracker** ist eine Notenverwaltung, die mit Python,
-SQLite und Gradio entwickelt wurde.
+## 1. Überblick
 
-Die Anwendung verwaltet Studierende, Kurse und Noten. Sie berechnet
-Durchschnittswerte und Bestehensquoten, erzeugt Berichte und stellt wichtige
-Kennzahlen in einem Dashboard dar.
+Der **Student Grade Tracker** ist eine in Python entwickelte Anwendung zur Verwaltung und Auswertung von Studierenden, Kursen und Noten.
 
-## Funktionen
+Die Anwendung verbindet eine objektorientierte Programmlogik mit einer SQLite-Datenbank und einer browserbasierten Benutzeroberfläche auf Basis von Gradio. Neben klassischen Verwaltungsfunktionen stehen Berichte, Dashboard-Kennzahlen, Diagramme und CSV-Exporte zur Verfügung.
 
-- Studierende, Kurse und Noten verwalten
-- Daten dauerhaft in einer SQLite-Datenbank speichern
-- Datenbanktabellen in der Gradio-Oberfläche anzeigen
-- Tabellen `students`, `courses` und `grades` als CSV exportieren
-- Student Reports erzeugen
-- Course Reports erzeugen
-- Summary Reports erzeugen
-- getrennte Dropdown-Menüs für Studierende und Kurse verwenden
-- nicht benötigte Dropdown-Menüs automatisch ausblenden
-- Dashboard-Kennzahlen direkt aus SQLite berechnen
-- Anzahl der Studierenden, Kurse und Noten anzeigen
-- Gesamtdurchschnitt und Bestehensquote berechnen
-- Bestandene und nicht bestandene Noten in einem Diagramm darstellen
-- Fehler durch eigene Exceptions verständlich behandeln
+Das Projekt wurde schrittweise in mehreren Entwicklungsphasen umgesetzt. Jede Phase erweitert die vorherige um zusätzliche technische und fachliche Funktionen.
 
-## Verwendete Technologien
+---
 
-- Python
-- SQLite
-- pandas
-- Gradio
-- pytest
-- Git und GitHub
-- uv
+## 2. Projektziele
+
+Das Projekt verfolgt folgende Ziele:
+
+- objektorientierte Modellierung einer Notenverwaltung
+- strukturierte Speicherung in einer SQLite-Datenbank
+- Trennung von Fachlogik, Persistenz und Benutzeroberfläche
+- automatisierte Berechnung von Durchschnitt und Bestehensstatus
+- Erstellung unterschiedlicher Berichte
+- übersichtliche Darstellung wichtiger Kennzahlen
+- CSV-Export ausgewählter Datenbanktabellen
+- Registrierung und Anmeldung von Studierenden
+- automatisierte Tests zur Qualitätssicherung
+- nachvollziehbare Versionsverwaltung mit Git und GitHub
+
+---
+
+## 3. Hauptfunktionen
+
+### Verwaltung von Studierenden
+
+Studierende werden mit folgenden Eigenschaften verwaltet:
+
+- Student-ID
+- Vorname
+- Nachname
+- E-Mail-Adresse
+
+Zusätzlich können neue Studierende über die Gradio-Oberfläche registriert werden.
+
+### Verwaltung von Kursen
+
+Kurse besitzen:
+
+- Kurs-ID
+- Kursname
+- maximale Punktzahl
+- Bestehensgrenze
+
+### Verwaltung von Noten
+
+Eine Note verbindet einen Studierenden mit einem Kurs. Gespeichert werden:
+
+- Student-ID
+- Kurs-ID
+- erreichte Punktzahl
+- Datum
+- optionale Bemerkung
+
+### Berichte
+
+Die Anwendung erzeugt:
+
+- Student Report
+- Course Report
+- Summary Report
+
+Die passenden Auswahlfelder werden abhängig vom ausgewählten Reporttyp angezeigt.
+
+### Dashboard
+
+Das Dashboard liest seine Kennzahlen direkt aus SQLite:
+
+- Anzahl der Studierenden
+- Anzahl der Kurse
+- Anzahl der erfassten Noten
+- Gesamtdurchschnitt
+- Bestehensquote
+
+Zusätzlich zeigt ein Balkendiagramm die Anzahl bestandener und nicht bestandener Noten.
+
+### SQLite-Ansicht und CSV-Export
+
+Die Tabellen `students`, `courses` und `grades` können in der Oberfläche angezeigt und als CSV-Dateien exportiert werden.
+
+### Studentenzugang
+
+Die Anwendung enthält eine einfache Registrierung und Anmeldung. Passwörter werden nicht im Klartext gespeichert, sondern als Hashwerte in SQLite abgelegt.
+
+---
+
+## 4. Technische Architektur
+
+Die Anwendung verwendet eine mehrschichtige Struktur:
+
+```text
+Gradio-Benutzeroberfläche
+          │
+          ▼
+Anwendungs- und Reportlogik
+          │
+          ▼
+GradeBook und GradeStore
+          │
+          ▼
+SQLite-Datenbank
+```
+
+### Zentrale Module
+
+| Modul | Aufgabe |
+|---|---|
+| `student.py` | Modell eines Studierenden |
+| `course.py` | Modell eines Kurses |
+| `grade.py` | Modell und Auswertung einer Note |
+| `gradebook.py` | zentrale Fachlogik |
+| `grade_store.py` | Speicherabstraktion und CRUD-Funktionen |
+| `database.py` | Aufbau und Initialisierung von SQLite |
+| `reports/` | Text- und CSV-Berichte |
+| `auth.py` | Registrierung, Passwort-Hashing und Anmeldung |
+| `app.py` | Gradio-Oberfläche und Benutzerinteraktion |
+| `exceptions.py` | projektspezifische Ausnahmen |
+
+### Vereinfachtes Klassendiagramm
+
+```mermaid
+classDiagram
+    class Student {
+        +student_id: str
+        +first_name: str
+        +last_name: str
+        +email: str
+        +full_name() str
+    }
+
+    class Course {
+        +course_id: str
+        +name: str
+        +max_grade: float
+        +passing_grade: float
+    }
+
+    class Grade {
+        +student_id: str
+        +course_id: str
+        +score: float
+        +date: str
+        +notes: str
+        +percentage() float
+        +letter_grade() str
+        +is_passing() bool
+    }
+
+    class GradeBook {
+        +add_student()
+        +add_course()
+        +record_grade()
+        +get_student_grades()
+        +get_course_grades()
+        +calculate_average()
+    }
+
+    class GradeStore {
+        +add_student()
+        +add_course()
+        +add_grade()
+        +get_student()
+        +get_course()
+        +get_student_grades()
+        +get_course_grades()
+    }
+
+    GradeBook --> GradeStore
+    Student "1" --> "*" Grade
+    Course "1" --> "*" Grade
+```
+
+---
+
+## 5. Entwicklungsphasen
+
+### Phase 1 – Domänenmodell und Grundlagen
+
+In der ersten Phase wurden die zentralen Klassen entwickelt:
+
+- `Student`
+- `Course`
+- `Grade`
+
+Der Schwerpunkt lag auf objektorientierter Modellierung, Validierung und grundlegenden Berechnungen.
+
+```mermaid
+flowchart LR
+    Student --> Grade
+    Course --> Grade
+    Grade --> Percentage[Prozentwert]
+    Grade --> Letter[Letter Grade]
+    Grade --> Status[Bestanden]
+```
+
+### Phase 2 – GradeBook und zentrale Fachlogik
+
+Die Klasse `GradeBook` bündelt die fachlichen Funktionen:
+
+- Studierende hinzufügen
+- Kurse hinzufügen
+- Noten erfassen
+- Noten suchen
+- Durchschnittswerte berechnen
+- Bestehensquoten ermitteln
+
+```mermaid
+flowchart TD
+    GradeBook --> Students[Studierende]
+    GradeBook --> Courses[Kurse]
+    GradeBook --> Grades[Noten]
+    Grades --> Statistics[Statistiken]
+```
+
+### Phase 3 – Persistenz und SQLite
+
+In dieser Phase wurde die dauerhafte Speicherung ergänzt.
+
+Die SQLite-Datenbank enthält die Tabellen:
+
+- `students`
+- `courses`
+- `grades`
+
+Die Beziehungen werden durch Fremdschlüssel abgebildet.
+
+```mermaid
+erDiagram
+    STUDENTS ||--o{ GRADES : receives
+    COURSES ||--o{ GRADES : contains
+
+    STUDENTS {
+        text student_id PK
+        text first_name
+        text last_name
+        text email
+    }
+
+    COURSES {
+        text course_id PK
+        text name
+        real max_grade
+        real passing_grade
+    }
+
+    GRADES {
+        integer id PK
+        text student_id FK
+        text course_id FK
+        real score
+        text date
+        text notes
+    }
+```
+
+## Phase 4 – SQLite-Persistenz
+
+Die bisherige dateibasierte Speicherung wurde durch eine relationale SQLite-Datenbank ergänzt. Studierende, Kurse und Noten werden in getrennten Tabellen gespeichert.
+
+Fremdschlüssel bilden die fachlichen Beziehungen ab:
+
+* Eine Note gehört zu genau einem Studierenden.
+* Eine Note gehört zu genau einem Kurs.
+* Ein Studierender kann mehrere Noten besitzen.
+* Ein Kurs kann mehrere Noten enthalten.
+
+Die Anwendung verwendet die lokale Datenbankdatei `grade_tracker.db`. Die Datenbank selbst wird nicht im Repository versioniert, da sie lokale Anwendungs- und Zugangsdaten enthalten kann.
+
+```mermaid
+erDiagram
+    STUDENTS ||--o{ GRADES : receives
+    COURSES ||--o{ GRADES : contains
+    STUDENTS ||--o| STUDENT_ACCOUNTS : owns
+
+    STUDENTS {
+        text student_id PK
+        text first_name
+        text last_name
+        text email
+    }
+
+    COURSES {
+        text course_id PK
+        text name
+        real max_grade
+        real passing_grade
+    }
+
+    GRADES {
+        integer id PK
+        text student_id FK
+        text course_id FK
+        real score
+        text date
+        text notes
+    }
+
+    STUDENT_ACCOUNTS {
+        text student_id PK_FK
+        text password_hash
+        text salt
+    }
+```
+
+Zusätzlich bietet die Gradio-Oberfläche einen SQLite-Tab. Dort können die freigegebenen Tabellen `students`, `courses` und `grades` angezeigt werden.
+
+Eine Whitelist verhindert, dass beliebige Tabellennamen an eine SQL-Abfrage übergeben werden.
+
+**Ergebnis:** Die Anwendung verfügt über eine dauerhafte relationale Datenspeicherung mit nachvollziehbaren Beziehungen zwischen Studierenden, Kursen und Noten.
+
+---
+
+## Phase 5 – Reports und Gradio-Oberfläche
+
+In Phase 5 wurde die Kernanwendung um eine grafische Benutzeroberfläche mit Gradio erweitert.
+
+Die Oberfläche enthält mehrere Bereiche:
+
+* Dashboard
+* Studentenzugang
+* SQLite-Datenbank
+* Reports
+
+Der Reportbereich stellt drei Berichtsarten bereit:
+
+### Student Report
+
+Der Student Report zeigt:
+
+* Name des Studierenden
+* Student-ID
+* E-Mail-Adresse
+* belegte beziehungsweise bewertete Kurse
+* erreichte Punktzahl
+* prozentuales Ergebnis
+* Buchstabennote
+* Bestehensstatus
+* persönlichen Durchschnitt
+
+### Course Report
+
+Der Course Report zeigt:
+
+* Kursname
+* Kurs-ID
+* vorhandene Noten
+* zugehörige Studierende
+* Kursdurchschnitt
+* Bestehensquote
+
+### Summary Report
+
+Der Summary Report fasst das gesamte Notenbuch zusammen:
+
+* Anzahl der Studierenden
+* Anzahl der Kurse
+* Anzahl der Noten
+* Kursstatistiken
+* Durchschnittswerte
+* Bestehensquoten
+
+Für Student Reports und Course Reports wurden getrennte Dropdown-Menüs erstellt. Dadurch muss der Benutzer keine IDs manuell eingeben.
+
+Die Oberfläche reagiert dynamisch auf den ausgewählten Reporttyp:
+
+```mermaid
+stateDiagram-v2
+    [*] --> Student
+    Student --> Course
+    Course --> Summary
+    Summary --> Student
+
+    Student : Studenten-Dropdown sichtbar
+    Student : Kurs-Dropdown verborgen
+
+    Course : Kurs-Dropdown sichtbar
+    Course : Studenten-Dropdown verborgen
+
+    Summary : beide Dropdowns verborgen
+```
+
+Neu registrierte Studierende werden aus der SQLite-Datenbank geladen und nach dem Aktualisieren beziehungsweise Neustarten der Anwendung in der Auswahl angezeigt.
+
+**Ergebnis:** Berichte können über eine verständliche grafische Oberfläche ausgewählt und erzeugt werden.
+
+---
+
+## Phase 6 – Dashboard, Export und Benutzerzugang
+
+Phase 6 erweitert die Anwendung um Funktionen, die über die reine Notenverwaltung hinausgehen.
+
+### Dashboard
+
+Das Dashboard liest seine Kennzahlen direkt aus der SQLite-Datenbank.
+
+Angezeigt werden:
+
+* Anzahl der Studierenden
+* Anzahl der Kurse
+* Anzahl der erfassten Noten
+* Gesamtdurchschnitt
+* Bestehensquote
+
+Dadurch entsprechen die angezeigten Werte dem aktuellen Datenbestand und nicht mehr fest eingetragenen Demo-Werten.
+
+### Bestehensdiagramm
+
+Die Anwendung erzeugt mit Matplotlib ein Balkendiagramm. Es stellt bestandene und nicht bestandene Noten gegenüber.
+
+```mermaid
+flowchart LR
+    DB[("SQLite-Datenbank")]
+    QUERY["Noten und Bestehensgrenzen abfragen"]
+    CALC["Bestanden und nicht bestanden zählen"]
+    FRAME["DataFrame erzeugen"]
+    PLOT["Matplotlib-Balkendiagramm"]
+    UI["Dashboard"]
+
+    DB --> QUERY
+    QUERY --> CALC
+    CALC --> FRAME
+    FRAME --> PLOT
+    PLOT --> UI
+```
+
+Das Diagramm wird automatisch aus den in SQLite gespeicherten Noten berechnet.
+
+### CSV-Export
+
+Im SQLite-Tab kann die ausgewählte Tabelle als CSV-Datei exportiert werden.
+
+Der Ablauf ist:
+
+1. Tabelle auswählen.
+2. Tabelleninhalt laden.
+3. „Als CSV exportieren“ anklicken.
+4. Erzeugte Datei herunterladen.
+
+Auch beim Export dürfen ausschließlich freigegebene Tabellen verwendet werden.
+
+### Studentenregistrierung und Anmeldung
+
+Der Tab „Zugang“ enthält zwei Bereiche:
+
+* Anmeldung eines vorhandenen Studierenden
+* Registrierung eines neuen Studierenden
+
+Bei der Registrierung werden folgende Angaben erfasst:
+
+* Student-ID
+* Vorname
+* Nachname
+* E-Mail-Adresse
+* Passwort
+* Passwortwiederholung
+
+Das Passwort wird nicht im Klartext gespeichert. Stattdessen wird ein zufälliger Salt erzeugt und gemeinsam mit dem Passwort zur Berechnung eines Passwort-Hashs verwendet.
+
+```mermaid
+sequenceDiagram
+    actor User as Benutzer
+    participant UI as Gradio-Oberfläche
+    participant Auth as auth.py
+    participant DB as SQLite
+
+    User->>UI: Registrierungsdaten eingeben
+    UI->>Auth: register_student(...)
+    Auth->>Auth: Eingaben validieren
+    Auth->>Auth: zufälligen Salt erzeugen
+    Auth->>Auth: Passwort-Hash berechnen
+    Auth->>DB: Student speichern
+    Auth->>DB: Hash und Salt speichern
+    DB-->>Auth: Transaktion erfolgreich
+    Auth-->>UI: Registrierung erfolgreich
+```
+
+Bei der Anmeldung wird das eingegebene Passwort mit dem gespeicherten Salt erneut gehasht. Anschließend wird der berechnete Hash mit dem gespeicherten Wert verglichen.
+
+**Ergebnis:** Die Anwendung besitzt ein datenbankgestütztes Dashboard, einen CSV-Export und eine grundlegende sichere Studentenregistrierung.
+
+---
+
+# Domain Model
+
+Das Domain Model beschreibt die fachlichen Kernobjekte der Anwendung. Es ist unabhängig von Gradio und SQLite aufgebaut.
+
+```mermaid
+classDiagram
+    class Student {
+        +student_id: str
+        +first_name: str
+        +last_name: str
+        +email: str
+        +full_name: str
+    }
+
+    class Course {
+        +course_id: str
+        +name: str
+        +max_grade: float
+        +passing_grade: float
+    }
+
+    class Grade {
+        +student_id: str
+        +course_id: str
+        +score: float
+        +date: str
+        +notes: str
+        +percentage()
+        +letter_grade()
+        +is_passing()
+    }
+
+    class GradeBook {
+        +add_student()
+        +add_course()
+        +record_grade()
+        +get_student()
+        +get_course()
+        +get_student_grades()
+        +student_average()
+        +course_statistics()
+    }
+
+    GradeBook "1" o-- "*" Student
+    GradeBook "1" o-- "*" Course
+    GradeBook "1" o-- "*" Grade
+    Grade --> Student : student_id
+    Grade --> Course : course_id
+```
+
+## Verantwortlichkeiten der Klassen
+
+### Student
+
+Die Klasse `Student` repräsentiert einen Studierenden. Sie speichert die Student-ID, den Vor- und Nachnamen sowie die E-Mail-Adresse.
+
+### Course
+
+Die Klasse `Course` repräsentiert einen Kurs. Neben Kurs-ID und Kursname enthält sie die maximale Punktzahl und die erforderliche Bestehensgrenze.
+
+### Grade
+
+Die Klasse `Grade` verbindet einen Studierenden mit einem Kurs und einem erreichten Ergebnis. Sie berechnet:
+
+* prozentuales Ergebnis
+* Buchstabennote
+* Bestehensstatus
+
+### GradeBook
+
+`GradeBook` dient als zentrale fachliche Verwaltung. Es koordiniert Studierende, Kurse und Noten und stellt Such- und Statistikfunktionen bereit.
+
+**Architekturentscheidung:** Fachliche Berechnungen gehören in das Domain Model. Die Benutzeroberfläche soll diese Funktionen lediglich aufrufen und Ergebnisse darstellen.
+
+---
+
+# Tests und Qualitätssicherung
+
+Die Anwendung besitzt automatisierte Tests für:
+
+* Studierende
+* Kurse
+* Noten
+* GradeBook
+* Validierung
+* Exceptions
+* Datenbankoperationen
+* Persistenz
+* Reports
+* Integrationsabläufe
+
+Die Tests werden mit folgendem Befehl ausgeführt:
+
+```bash
+uv run pytest -q
+```
+
+Der zuletzt dokumentierte Testlauf ergab:
+
+```text
+100 passed
+```
+
+Die Tests prüfen sowohl reguläre Abläufe als auch Fehlerfälle, beispielsweise:
+
+* doppelte Student-IDs
+* unbekannte Studierende
+* unbekannte Kurse
+* ungültige Punktzahlen
+* beschädigte oder unvollständige Daten
+* leere Pflichtfelder
+
+---
+
+# Bekannte Grenzen
+
+Die Anwendung ist ein Lern- und Demonstrationsprojekt. Folgende Punkte können zukünftig verbessert werden:
+
+* automatische Aktualisierung der Dropdowns ohne App-Neustart
+* vollständige Sitzungsverwaltung nach der Anmeldung
+* Rollen und Berechtigungen für Studierende und Lehrkräfte
+* Zurücksetzen vergessener Passwörter
+* Änderungs- und Löschfunktionen in der Oberfläche
+* stärkere Trennung zwischen UI, Anwendungslogik und Datenbankzugriffen
+* zusätzliche Diagramme und Filter
+* Deployment auf einem Server
+* umfassendere Tests für Authentifizierung und Gradio-Ereignisse
+
+---
+
+# Fazit
+
+Der Student Grade Tracker entwickelte sich schrittweise von einem objektorientierten Konsolenprojekt zu einer grafischen, datenbankgestützten Anwendung.
+
+Das Projekt demonstriert:
+
+* objektorientierte Modellierung
+* Validierung und Fehlerbehandlung
+* Datei- und SQLite-Persistenz
+* automatisierte Tests
+* Reportgenerierung
+* grafische Oberflächenentwicklung mit Gradio
+* Datenvisualisierung mit Matplotlib
+* CSV-Export
+* sichere Passwortspeicherung durch Salt und Hash
+* strukturierte, phasenweise Softwareentwicklung
+
+Die Kernfunktionalität ist umgesetzt. Weitere Arbeiten betreffen hauptsächlich Feinschliff, zusätzliche Tests, Dokumentation und mögliche Komfortfunktionen.
+
+
+
+
+
+
+
+
+
+
+
+# Student Grade Tracker
+
+[![Python 3.13+](https://img.shields.io/badge/Python-3.13%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![Gradio](https://img.shields.io/badge/UI-Gradio-F97316)](https://www.gradio.app/)
+[![SQLite](https://img.shields.io/badge/Database-SQLite-003B57?logo=sqlite&logoColor=white)](https://www.sqlite.org/)
+[![Tests](https://img.shields.io/badge/tests-100%20passed-success)](#tests)
+
+Der **Student Grade Tracker** ist eine in Python entwickelte Anwendung zur Verwaltung und Auswertung von Studierenden, Kursen und Noten. Das Projekt verbindet objektorientierte Programmierung, eine SQLite-Persistenzschicht, automatisierte Tests, Textberichte und eine interaktive Gradio-Oberfläche.
+
+Die Anwendung entstand schrittweise in sechs Entwicklungsphasen. Dadurch sind Domänenlogik, Speicherung, Berichte und Benutzeroberfläche klar voneinander getrennt und nachvollziehbar dokumentiert.
+
+## Funktionsumfang
+
+- Studierende und Kurse verwalten
+- Noten erfassen, validieren und statistisch auswerten
+- Daten dauerhaft in SQLite speichern
+- Student-, Kurs- und Gesamtberichte erzeugen
+- Dashboard-Kennzahlen direkt aus der Datenbank laden
+- Bestehensverteilung als Balkendiagramm darstellen
+- Datenbanktabellen anzeigen und als CSV exportieren
+- Studierende registrieren und anmelden
+- Passwörter ausschließlich als gesalzene PBKDF2-Hashes speichern
+- Report-Auswahl dynamisch an den gewählten Berichtstyp anpassen
+- Kernlogik mit 100 automatisierten Tests absichern
+
+## Anwendung
+
+Die Gradio-Oberfläche besteht aus vier Bereichen:
+
+| Bereich | Zweck |
+|---|---|
+| **Dashboard** | Zeigt Anzahl der Studierenden, Kurse und Noten sowie Durchschnitt, Bestehensquote und Diagramm. |
+| **Zugang** | Ermöglicht Registrierung und Anmeldung von Studierenden. |
+| **SQLite-Datenbank** | Zeigt freigegebene Tabellen und stellt sie als CSV-Datei bereit. |
+| **Reports** | Erzeugt Student-, Kurs- und Gesamtberichte mit kontextabhängigen Dropdowns. |
+
+## Architektur
+
+```mermaid
+flowchart LR
+    UI["Gradio UI<br/>Dashboard · Zugang · Datenbank · Reports"]
+    APP["Anwendungslogik<br/>app.py"]
+    AUTH["Authentifizierung<br/>auth.py"]
+    DOMAIN["Domänenmodell<br/>Student · Course · Grade · GradeBook"]
+    REPORTS["Report-Generatoren"]
+    DB[("SQLite<br/>grade_tracker.db")]
+    TESTS["pytest<br/>100 Tests"]
+
+    UI --> APP
+    APP --> AUTH
+    APP --> DOMAIN
+    APP --> REPORTS
+    APP <--> DB
+    AUTH <--> DB
+    REPORTS --> DOMAIN
+    TESTS -. prüft .-> DOMAIN
+    TESTS -. prüft .-> DB
+    TESTS -. prüft .-> REPORTS
+```
+
+## Entwicklungsphasen
+
+| Phase | Schwerpunkt | Ergebnis |
+|---|---|---|
+| **1 – Domänenmodell** | OOP-Grundstruktur | Klassen für Studierende, Kurse, Noten und Notenbuch |
+| **2 – Geschäftslogik** | Validierung und Berechnungen | Durchschnitte, Bestehensstatus, Suche und Fehlerfälle |
+| **3 – Dateien und Fehlerbehandlung** | JSON/CSV und eigene Exceptions | Import, Export und robuste Fehlermeldungen |
+| **4 – SQLite-Persistenz** | Relationale Speicherung | Tabellen, Fremdschlüssel und persistentes `GradeStore` |
+| **5 – Reports und GUI** | Auswertung und Gradio | Student-, Kurs- und Gesamtberichte in einer Weboberfläche |
+| **6 – Dashboard und Abschluss** | Visualisierung, Zugang und UX | Dashboard, Diagramm, CSV-Download, Registrierung, dynamische UI und Abschlusstests |
+
+Die ausführliche Entwicklungsgeschichte mit einem UML- beziehungsweise Architekturdiagramm pro Phase befindet sich in der [Projektbeschreibung](docs/project_description.md).
+
+## Schnellstart
+
+### Voraussetzungen
+
+- Python 3.13 oder neuer
+- [uv](https://docs.astral.sh/uv/)
+- Git
+
+### Installation
+
+```bash
+git clone https://github.com/degenhardtmuc-ui/student_grade_tracker.git
+cd student_grade_tracker
+uv sync
+```
+
+### Anwendung starten
+
+```bash
+uv run python -m notenverwaltung.app
+```
+
+Gradio zeigt anschließend eine lokale Adresse an, üblicherweise:
+
+```text
+http://127.0.0.1:7860
+```
+
+## Tests
+
+```bash
+uv run pytest -q
+```
+
+Aktueller Projektstand: **100 Tests erfolgreich**.
+
+Die Tests decken unter anderem Domänenklassen, Validierung, Exceptions, Persistenz, SQLite-Integration, Reports und Setup ab.
 
 ## Projektstruktur
 
 ```text
 student_grade_tracker/
 ├── notenverwaltung/
-│   ├── reports/
 │   ├── app.py
+│   ├── auth.py
 │   ├── course.py
 │   ├── database.py
 │   ├── exceptions.py
 │   ├── grade.py
 │   ├── grade_store.py
 │   ├── gradebook.py
-│   └── student.py
+│   ├── student.py
+│   └── reports/
+│       ├── base.py
+│       ├── csv_report.py
+│       └── text_report.py
 ├── tests/
-├── grade_tracker.db
+├── docs/
+│   └── project_description.md
 ├── pyproject.toml
-├── requirements.txt
+├── uv.lock
 └── README.md
-
-# Git- und GitHub-Lernnotizen
-
-Dieser Abschnitt erklärt, wie ein neues GitHub-Repository erstellt und auf dem eigenen Mac verbunden wird.
-
-Wichtig:
-
-```text
-Nur eine Person erstellt das Repository auf GitHub.
-Alle anderen Teilnehmer werden danach eingeladen.
 ```
 
----
+## Datenbank und Sicherheit
 
+Die lokale Datei `grade_tracker.db` wird beim Betrieb der Anwendung verwendet, aber durch `.gitignore` nicht in Git versioniert. Damit bleiben lokale Benutzerkonten und Testdaten außerhalb des öffentlichen Repositorys.
+
+Bei der Registrierung wird kein Klartextpasswort gespeichert. `auth.py` verwendet:
+
+- einen zufälligen Salt pro Konto,
+- PBKDF2-HMAC mit SHA-256,
+- 200.000 Iterationen,
+- einen konstantzeitlichen Hashvergleich bei der Anmeldung.
+
+Die aktuelle Zugangsfunktion prüft Anmeldedaten. Eine rollenbasierte Zugriffskontrolle und serverseitige Sitzungsverwaltung sind mögliche spätere Erweiterungen.
+
+## Bekannte Grenzen
+
+- Dropdown-Inhalte werden beim App-Start aus SQLite geladen; nach einer Neuregistrierung ist derzeit ein Neustart erforderlich.
+- Die Berichte verwenden ein aus SQLite aufgebautes `GradeBook`, sind jedoch noch nicht als personalisierter, geschützter Benutzerbereich umgesetzt.
+- Das Projekt ist eine Lern- und Demonstrationsanwendung, kein produktives Campus-System.
+
+## Dokumentation
+
+- [Ausführliche Projektbeschreibung mit Phasen und UML-Diagrammen](docs/project_description.md)
+- [GitHub-Repository](https://github.com/degenhardtmuc-ui/student_grade_tracker)
+
+## Git-Workflow
+
+Die Entwicklung wurde in kleinen, nachvollziehbaren Schritten durchgeführt:
+
+```bash
+git status
+git add <dateien>
+git commit -m "Aussagekräftige Änderung"
+git push
+```
+
+So bleiben Features, Fehlerkorrekturen und Dokumentationsänderungen in der Historie nachvollziehbar.
+
+## Autor
+
+**Daniel Degenhardt**  
+Software-Engineering-Lernprojekt
 
 ## 1. Neues Repository auf GitHub erstellen
 
