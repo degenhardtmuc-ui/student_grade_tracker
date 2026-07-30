@@ -280,32 +280,32 @@ erDiagram
     STUDENTS ||--o| STUDENT_ACCOUNTS : owns
 
     STUDENTS {
-        text student_id PK
-        text first_name
-        text last_name
-        text email
+        string student_id PK
+        string first_name
+        string last_name
+        string email
     }
 
     COURSES {
-        text course_id PK
-        text name
-        real max_grade
-        real passing_grade
+        string course_id PK
+        string name
+        float max_grade
+        float passing_grade
     }
 
     GRADES {
-        integer id PK
-        text student_id FK
-        text course_id FK
-        real score
-        text date
-        text notes
+        int id PK
+        string student_id FK
+        string course_id FK
+        float score
+        string date
+        string notes
     }
 
     STUDENT_ACCOUNTS {
-        text student_id PK_FK
-        text password_hash
-        text salt
+        string student_id PK, FK
+        string password_hash
+        string salt
     }
 ```
 
