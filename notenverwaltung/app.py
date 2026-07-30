@@ -25,6 +25,30 @@ DATABASE_PATH = (
 # Nur diese Tabellennamen dürfen verwendet werden.
 ALLOWED_TABLES = {"students", "courses", "grades"}
 
+def get_next_student_id(database_path: Path) -> str:
+    """Return the next free student ID in the format S001, S002, ..."""
+
+    if not database_path.exists():
+        return "S001"
+
+    with sqlite3.connect(database_path) as connection:
+        result = connection.execute(
+            """
+            SELECT student_id
+            FROM students
+            WHERE student_id LIKE 'S%'
+            ORDER BY CAST(SUBSTR(student_id, 2) AS INTEGER) DESC
+            LIMIT 1
+            """
+        ).fetchone()
+
+    if result is None:
+        return "S001"
+
+    last_student_id = result[0]
+    next_number = int(last_student_id[1:]) + 1
+
+    return f"S{next_number:03d}"
 
 def welcome(name: str) -> str:
     """Return a short welcome message."""
@@ -32,14 +56,27 @@ def welcome(name: str) -> str:
     return f"Willkommen bei der Notenverwaltung, {name}!"
 
 def register_from_form(
-    student_id: str,
     first_name: str,
     last_name: str,
     email: str,
     password: str,
     password_repeat: str,
 ) -> str:
-    """Verbinde das Registrierungsformular mit SQLite."""
+    """Register a new student with an automatically generated student ID."""
+
+    student_id = get_next_student_id(DATABASE_PATH)
+
+    result = register_student(
+        DATABASE_PATH,
+        student_id,
+        first_name,
+        last_name,
+        email,
+        password,
+        password_repeat,
+    )
+
+    return f"{result}\n\nStudent-ID: {student_id}"
 
     return register_student(
         DATABASE_PATH,
@@ -484,9 +521,10 @@ with gr.Blocks(title="Student Grade Tracker") as app:
 
             with gr.Column():
                 gr.Markdown("### Neu registrieren")
+                gr.Markdown("Ihre Student-ID wird automatisch vergeben")
 
                 register_id_input = gr.Textbox(
-                    label="Student-ID"
+                    label="Student-ID: automatisch erzeugt "
                 )
                 register_first_name = gr.Textbox(
                     label="Vorname"
@@ -519,14 +557,13 @@ with gr.Blocks(title="Student Grade Tracker") as app:
                 register_button.click(
                     fn=register_from_form,
                     inputs=[
-                        register_id_input,
                         register_first_name,
                         register_last_name,
                         register_email,
                         register_password,
                         register_password_repeat,
-                    ],
-                    outputs=register_output,
+                ],
+                outputs=register_output,
                 )
 
     with gr.Tab("SQLite-Datenbank"):
