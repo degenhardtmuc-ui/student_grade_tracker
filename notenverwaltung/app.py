@@ -21,7 +21,7 @@ from notenverwaltung.auth import login_student, register_student
 DATABASE_PATH = (
     Path(__file__).resolve().parent.parent / "grade_tracker.db"
 )
-
+LOGO_PATH = Path(__file__).resolve().parent.parent / "assets" / "logo.png"
 # Nur diese Tabellennamen dürfen verwendet werden.
 ALLOWED_TABLES = {"students", "courses", "grades"}
 
@@ -77,16 +77,6 @@ def register_from_form(
     )
 
     return f"{result}\n\nStudent-ID: {student_id}"
-
-    return register_student(
-        DATABASE_PATH,
-        student_id,
-        first_name,
-        last_name,
-        email,
-        password,
-        password_repeat,
-    )
 
 
 def login_from_form(student_id: str, password: str) -> str:
@@ -467,23 +457,75 @@ def export_table_to_csv(table_name: str) -> str:
 
     return str(export_path)
 
+def record_grade_from_form(
+    student_id: str,
+    course_id: str,
+    score: float,
+    date: str,
+    notes: str,
+) -> str:
+    """Save a new grade in the SQLite database."""
+
+    if not DATABASE_PATH.exists():
+        return f"Datenbank nicht gefunden: {DATABASE_PATH}"
+
+    if not student_id:
+        return "Bitte einen Studenten auswählen."
+
+    if not course_id:
+        return "Bitte einen Kurs auswählen."
+
+    if score is None:
+        return "Bitte eine Punktzahl eingeben."
+
+    if score < 0 or score > 100:
+        return "Die Punktzahl muss zwischen 0 und 100 liegen."
+
+    if not date:
+        return "Bitte ein Datum eingeben."
+
+    with sqlite3.connect(DATABASE_PATH) as connection:
+        connection.execute(
+            """
+            INSERT INTO grades (student_id, course_id, score, date, notes)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (student_id, course_id, score, date, notes),
+        )
+        connection.commit()
+
+    return f"Note gespeichert: {student_id}, {course_id}, {score} Punkte"
+
 with gr.Blocks(title="Student Grade Tracker") as app:
-    gr.Markdown("# Student Grade Tracker")
-    gr.Markdown("Notenverwaltung mit Python, SQLite und Gradio")
+    with gr.Row():
+        if LOGO_PATH.exists():
+            gr.Image(
+                value=str(LOGO_PATH),
+                show_label=False,
+                height=90,
+                width=90,
+                container=False,
+            )
+
+        gr.Markdown(
+            """
+# Student Grade Tracker
+
+**Notenverwaltung mit Python, SQLite und Gradio**  
+Dashboard · Studentenzugang · Notenerfassung · SQLite-Datenbank · Reports
+"""
+        )
 
     with gr.Tab("Dashboard"):
         gr.Markdown("## Dashboard")
-
-        gr.Markdown(
-            generate_dashboard()
-        )
-
+        gr.Markdown(generate_dashboard())
         gr.Markdown("### Bestehensverteilung")
 
         gr.Plot(
             value=generate_pass_plot(),
             label="Bestanden und nicht bestanden",
         )
+
     with gr.Tab("Zugang"):
         gr.Markdown("## Studentenzugang")
 
@@ -492,7 +534,7 @@ with gr.Blocks(title="Student Grade Tracker") as app:
                 gr.Markdown("### Anmelden")
 
                 login_id_input = gr.Textbox(
-                    label="Student-ID"
+                    label="Student-ID",
                 )
 
                 login_password_input = gr.Textbox(
@@ -521,24 +563,27 @@ with gr.Blocks(title="Student Grade Tracker") as app:
 
             with gr.Column():
                 gr.Markdown("### Neu registrieren")
-                gr.Markdown("Ihre Student-ID wird automatisch vergeben")
+                gr.Markdown(
+                    "Ihre Student-ID wird automatisch vergeben."
+                )
 
-                register_id_input = gr.Textbox(
-                    label="Student-ID: automatisch erzeugt "
-                )
                 register_first_name = gr.Textbox(
-                    label="Vorname"
+                    label="Vorname",
                 )
+
                 register_last_name = gr.Textbox(
-                    label="Nachname"
+                    label="Nachname",
                 )
+
                 register_email = gr.Textbox(
-                    label="E-Mail"
+                    label="E-Mail",
                 )
+
                 register_password = gr.Textbox(
                     label="Passwort",
                     type="password",
                 )
+
                 register_password_repeat = gr.Textbox(
                     label="Passwort wiederholen",
                     type="password",
@@ -562,9 +607,64 @@ with gr.Blocks(title="Student Grade Tracker") as app:
                         register_email,
                         register_password,
                         register_password_repeat,
-                ],
-                outputs=register_output,
+                    ],
+                    outputs=register_output,
                 )
+
+    with gr.Tab("Noten erfassen"):
+        gr.Markdown("## Neue Note erfassen")
+
+        grade_student_input = gr.Dropdown(
+            choices=student_choices,
+            value=student_choices[0][1] if student_choices else None,
+            label="Student auswählen",
+        )
+
+        grade_course_input = gr.Dropdown(
+            choices=course_choices,
+            value=course_choices[0][1] if course_choices else None,
+            label="Kurs auswählen",
+        )
+
+        grade_score_input = gr.Number(
+            label="Punktzahl",
+            value=80,
+            minimum=0,
+            maximum=100,
+        )
+
+        grade_date_input = gr.Textbox(
+            label="Datum",
+            value="2026-07-30",
+            placeholder="YYYY-MM-DD",
+        )
+
+        grade_notes_input = gr.Textbox(
+            label="Notiz",
+            placeholder="z. B. gute Leistung",
+        )
+
+        grade_button = gr.Button(
+            "Note speichern",
+            variant="primary",
+        )
+
+        grade_output = gr.Textbox(
+            label="Status",
+            interactive=False,
+        )
+
+        grade_button.click(
+            fn=record_grade_from_form,
+            inputs=[
+                grade_student_input,
+                grade_course_input,
+                grade_score_input,
+                grade_date_input,
+                grade_notes_input,
+            ],
+            outputs=grade_output,
+        )
 
     with gr.Tab("SQLite-Datenbank"):
         table_selection = gr.Dropdown(
@@ -582,48 +682,48 @@ with gr.Blocks(title="Student Grade Tracker") as app:
             label="Datenbankinhalt",
             interactive=False,
         )
-        
+
         export_button = gr.Button(
-            "Als CSV exportieren"
+            "Als CSV exportieren",
         )
 
         export_output = gr.File(
-            label="CSV-Datei herunterladen"
+            label="CSV-Datei herunterladen",
         )
-        
+
         load_button.click(
             fn=load_table,
             inputs=table_selection,
             outputs=database_output,
         )
-        
+
         export_button.click(
             fn=export_table_to_csv,
             inputs=table_selection,
             outputs=export_output,
         )
-    
+
     with gr.Tab("Reports"):
         gr.Markdown("## Text Reports")
 
         report_type_input = gr.Radio(
             choices=["Student", "Course", "Summary"],
             value="Student",
-            label="Report type",
+            label="Report-Typ",
         )
 
         student_input = gr.Dropdown(
             choices=student_choices,
-            value="S001",
+            value=student_choices[0][1] if student_choices else None,
             label="Student auswählen",
         )
 
         course_input = gr.Dropdown(
             choices=course_choices,
-            value="CS101",
+            value=course_choices[0][1] if course_choices else None,
             label="Kurs auswählen",
         )
-        
+
         report_type_input.change(
             fn=update_report_inputs,
             inputs=report_type_input,
@@ -632,8 +732,10 @@ with gr.Blocks(title="Student Grade Tracker") as app:
                 course_input,
             ],
         )
-        
-        report_button = gr.Button("Report erzeugen")
+
+        report_button = gr.Button(
+            "Report erzeugen",
+        )
 
         report_output = gr.Textbox(
             label="Report",
@@ -649,6 +751,7 @@ with gr.Blocks(title="Student Grade Tracker") as app:
             ],
             outputs=report_output,
         )
+
 
 if __name__ == "__main__":
     app.launch()
