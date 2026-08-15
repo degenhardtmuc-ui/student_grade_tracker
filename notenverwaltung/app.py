@@ -496,6 +496,28 @@ def record_grade_from_form(
 
     return f"Note gespeichert: {student_id}, {course_id}, {score} Punkte"
 
+def record_grade_and_refresh_dashboard(
+    student_id: str,
+    course_id: str,
+    score: float,
+    date: str,
+    notes: str,
+):
+    """Speichere eine Note und aktualisiere anschließend das Dashboard."""
+
+    status_message = record_grade_from_form(
+        student_id,
+        course_id,
+        score,
+        date,
+        notes,
+    )
+
+    dashboard = generate_dashboard()
+    pass_plot = generate_pass_plot()
+
+    return status_message, dashboard, pass_plot
+
 with gr.Blocks(title="Student Grade Tracker") as app:
     with gr.Row():
         if LOGO_PATH.exists():
@@ -518,10 +540,14 @@ Dashboard · Studentenzugang · Notenerfassung · SQLite-Datenbank · Reports
 
     with gr.Tab("Dashboard"):
         gr.Markdown("## Dashboard")
-        gr.Markdown(generate_dashboard())
+
+        dashboard_output = gr.Markdown(
+            generate_dashboard()
+        )
+
         gr.Markdown("### Bestehensverteilung")
 
-        gr.Plot(
+        pass_plot_output = gr.Plot(
             value=generate_pass_plot(),
             label="Bestanden und nicht bestanden",
         )
@@ -655,7 +681,7 @@ Dashboard · Studentenzugang · Notenerfassung · SQLite-Datenbank · Reports
         )
 
         grade_button.click(
-            fn=record_grade_from_form,
+            fn=record_grade_and_refresh_dashboard,
             inputs=[
                 grade_student_input,
                 grade_course_input,
@@ -663,7 +689,11 @@ Dashboard · Studentenzugang · Notenerfassung · SQLite-Datenbank · Reports
                 grade_date_input,
                 grade_notes_input,
             ],
-            outputs=grade_output,
+            outputs=[
+                grade_output,
+                dashboard_output,
+                pass_plot_output,
+            ],
         )
 
     with gr.Tab("SQLite-Datenbank"):
