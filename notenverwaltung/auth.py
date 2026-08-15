@@ -9,11 +9,17 @@ from pathlib import Path
 
 PBKDF2_ITERATIONS = 200_000
 
+ALLOWED_ROLES = {
+    "student",
+    "teacher",
+    "admin",
+    "super_admin",
+}
 
 def _create_account_table(
     connection: sqlite3.Connection,
 ) -> None:
-    """Lege die separate Tabelle für Zugangsdaten an."""
+    """Lege die Tabelle für Zugangsdaten und Benutzerrollen an."""
 
     connection.execute(
         """
@@ -21,6 +27,7 @@ def _create_account_table(
             student_id TEXT PRIMARY KEY,
             password_salt TEXT NOT NULL,
             password_hash TEXT NOT NULL,
+            role TEXT NOT NULL DEFAULT 'student',
             FOREIGN KEY (student_id)
                 REFERENCES students(student_id)
                 ON DELETE CASCADE
@@ -28,6 +35,20 @@ def _create_account_table(
         """
     )
 
+    columns = {
+        row[1]
+        for row in connection.execute(
+            "PRAGMA table_info(student_accounts)"
+        )
+    }
+
+    if "role" not in columns:
+        connection.execute(
+            """
+            ALTER TABLE student_accounts
+            ADD COLUMN role TEXT NOT NULL DEFAULT 'student'
+            """
+        )
 
 def _hash_password(
     password: str,
@@ -181,7 +202,8 @@ def login_student(
                     s.first_name,
                     s.last_name,
                     a.password_salt,
-                    a.password_hash
+                    a.password_hash,
+                    a.role
                 FROM student_accounts AS a
                 JOIN students AS s
                     ON s.student_id = a.student_id
@@ -203,7 +225,8 @@ def login_student(
     last_name = account[1]
     salt_hex = account[2]
     stored_hash = account[3]
-
+    role = account[4]
+    
     entered_hash = _hash_password(
         password,
         salt_hex,
@@ -217,5 +240,6 @@ def login_student(
 
     return (
         f"Anmeldung erfolgreich. "
-        f"Willkommen, {first_name} {last_name}!"
-    )
+        f"Willkommen, {first_name} {last_name}! "
+        f"Rolle: {role}"
+)
