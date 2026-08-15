@@ -31,6 +31,11 @@ GRADE_WRITE_ROLES = {
     "super_admin",
 }
 
+FULL_REPORT_ROLES = {
+    "teacher",
+    "admin",
+    "super_admin",
+}
 def get_next_student_id(database_path: Path) -> str:
     """Return the next free student ID in the format S001, S002, ..."""
 
@@ -370,17 +375,52 @@ def generate_selected_report(
     report_type: str,
     student_id: str,
     course_id: str,
+    current_student_id: str,
+    role: str,
 ) -> str:
-    """Select the correct identifier and generate the requested report."""
+    """Erzeuge einen Report abhängig von der Benutzerrolle."""
+
+    if not current_student_id or not role:
+        return "Bitte zuerst anmelden."
+
+    if role == "student":
+        if report_type != "Student":
+            return (
+                "Keine Berechtigung: Studenten dürfen nur "
+                "ihren eigenen Studentenreport erzeugen."
+            )
+
+        if student_id != current_student_id:
+            return (
+                "Keine Berechtigung: Studenten dürfen keine "
+                "Reports anderer Studenten ansehen."
+            )
+
+        return generate_text_report(
+            "Student",
+            current_student_id,
+        )
+
+    if role not in FULL_REPORT_ROLES:
+        return "Keine Berechtigung für diesen Report."
 
     if report_type == "Student":
-        return generate_text_report("Student", student_id)
+        return generate_text_report(
+            "Student",
+            student_id,
+        )
 
     if report_type == "Course":
-        return generate_text_report("Course", course_id)
+        return generate_text_report(
+            "Course",
+            course_id,
+        )
 
     if report_type == "Summary":
-        return generate_text_report("Summary", "")
+        return generate_text_report(
+            "Summary",
+            "",
+        )
 
     return "Unbekannter Report-Typ."
 
@@ -829,9 +869,11 @@ Dashboard · Studentenzugang · Notenerfassung · SQLite-Datenbank · Reports
                 report_type_input,
                 student_input,
                 course_input,
-            ],
-            outputs=report_output,
-        )
+                current_student_id,
+                current_role,
+        ],
+        outputs=report_output,
+)
 
 
 if __name__ == "__main__":

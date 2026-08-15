@@ -35,7 +35,7 @@ class TextReportGenerator(ReportGenerator):
             )
 
         average = self.gradebook.student_average(student_id)
-        lines.append(f"Average: {average:.2f}%")
+        lines.append(f"Overall Average: {average:.2f}%")
 
         return "\n".join(lines)
 
