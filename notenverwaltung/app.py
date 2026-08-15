@@ -25,6 +25,12 @@ LOGO_PATH = Path(__file__).resolve().parent.parent / "assets" / "logo.png"
 # Nur diese Tabellennamen dürfen verwendet werden.
 ALLOWED_TABLES = {"students", "courses", "grades"}
 
+GRADE_WRITE_ROLES = {
+    "teacher",
+    "admin",
+    "super_admin",
+}
+
 def get_next_student_id(database_path: Path) -> str:
     """Return the next free student ID in the format S001, S002, ..."""
 
@@ -79,14 +85,39 @@ def register_from_form(
     return f"{result}\n\nStudent-ID: {student_id}"
 
 
-def login_from_form(student_id: str, password: str) -> str:
-    """Verbinde das Anmeldeformular mit der Passwortprüfung."""
+def login_from_form(
+    student_id: str,
+    password: str,
+):
+    """Prüfe die Anmeldung und erzeuge eine Benutzersitzung."""
 
-    return login_student(
+    login_message = login_student(
         DATABASE_PATH,
         student_id,
         password,
     )
+
+    if not login_message.startswith("Anmeldung erfolgreich."):
+        return login_message, "", ""
+
+    student_id = student_id.strip().upper()
+
+    with sqlite3.connect(DATABASE_PATH) as connection:
+        account = connection.execute(
+            """
+            SELECT role
+            FROM student_accounts
+            WHERE student_id = ?
+            """,
+            (student_id,),
+        ).fetchone()
+
+    if account is None:
+        return "Benutzerkonto nicht gefunden!", "", ""
+
+    role = account[0]
+
+    return login_message, student_id, role
 
 def create_demo_gradebook() -> GradeBook:
     """Create a small demo gradebook for the report tab."""
@@ -463,9 +494,19 @@ def record_grade_from_form(
     score: float,
     date: str,
     notes: str,
+    role: str,
 ) -> str:
     """Save a new grade in the SQLite database."""
+    
+    if not role:
+        return "Bitte zuerst anmelden."
 
+    if role not in GRADE_WRITE_ROLES:
+        return (
+            "Keine Berechtigung: "
+            "Studenten dürfen keine Noten erfassen."
+        )
+    
     if not DATABASE_PATH.exists():
         return f"Datenbank nicht gefunden: {DATABASE_PATH}"
 
@@ -502,6 +543,7 @@ def record_grade_and_refresh_dashboard(
     score: float,
     date: str,
     notes: str,
+    role: str,
 ):
     """Speichere eine Note und aktualisiere anschließend das Dashboard."""
 
@@ -511,6 +553,7 @@ def record_grade_and_refresh_dashboard(
         score,
         date,
         notes,
+        role,
     )
 
     dashboard = generate_dashboard()
@@ -519,6 +562,9 @@ def record_grade_and_refresh_dashboard(
     return status_message, dashboard, pass_plot
 
 with gr.Blocks(title="Student Grade Tracker") as app:
+    current_student_id = gr.State("")
+    current_role = gr.State("")
+    
     with gr.Row():
         if LOGO_PATH.exists():
             gr.Image(
@@ -584,7 +630,11 @@ Dashboard · Studentenzugang · Notenerfassung · SQLite-Datenbank · Reports
                         login_id_input,
                         login_password_input,
                     ],
-                    outputs=login_output,
+                    outputs=[
+                        login_output,
+                        current_student_id,
+                        current_role,
+                    ],
                 )
 
             with gr.Column():
@@ -688,6 +738,7 @@ Dashboard · Studentenzugang · Notenerfassung · SQLite-Datenbank · Reports
                 grade_score_input,
                 grade_date_input,
                 grade_notes_input,
+                current_role,
             ],
             outputs=[
                 grade_output,
