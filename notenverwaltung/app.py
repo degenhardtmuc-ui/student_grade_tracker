@@ -36,6 +36,11 @@ FULL_REPORT_ROLES = {
     "admin",
     "super_admin",
 }
+DATABASE_ACCESS_ROLES = {
+    "admin",
+    "super_admin",
+}
+
 def get_next_student_id(database_path: Path) -> str:
     """Return the next free student ID in the format S001, S002, ..."""
 
@@ -444,9 +449,22 @@ def update_report_inputs(report_type: str):
         gr.update(visible=False),
     )
 
-def load_table(table_name: str) -> pd.DataFrame:
+def load_table(table_name: str, role: str) -> pd.DataFrame:
     """Read one permitted table from the SQLite database."""
+    if not role:
+        return pd.DataFrame(
+            {"Fehler": ["Bitte zuerst anmelden."]}
+        )
 
+    if role not in DATABASE_ACCESS_ROLES:
+        return pd.DataFrame(
+            {
+                "Fehler": [
+                    "Keine Berechtigung: Nur Admin und "
+                    "Super-Admin dürfen Datenbanktabellen ansehen."
+                ]
+            }
+        )
     if table_name not in ALLOWED_TABLES:
         return pd.DataFrame(
             {"Fehler": ["Diese Tabelle ist nicht erlaubt."]}
@@ -502,9 +520,16 @@ def load_course_choices():
 student_choices = load_student_choices()
 course_choices = load_course_choices()
 
-def export_table_to_csv(table_name: str) -> str:
+def export_table_to_csv(table_name: str, role: str,) -> str:
     """Export one permitted SQLite table as a CSV file."""
+    if not role:
+        raise gr.Error("Bitte zuerst anmelden.")
 
+    if role not in DATABASE_ACCESS_ROLES:
+        raise gr.Error(
+            "Keine Berechtigung: Nur Admin und "
+            "Super-Admin dürfen CSV-Dateien exportieren."
+        )
     if table_name not in ALLOWED_TABLES:
         raise gr.Error("Diese Tabelle darf nicht exportiert werden.")
 
@@ -814,14 +839,20 @@ Dashboard · Studentenzugang · Notenerfassung · SQLite-Datenbank · Reports
 
         load_button.click(
             fn=load_table,
-            inputs=table_selection,
-            outputs=database_output,
+            inputs=[
+                table_selection,
+                current_role,
+            ],
+        outputs=database_output,
         )
 
         export_button.click(
             fn=export_table_to_csv,
-            inputs=table_selection,
-            outputs=export_output,
+            inputs=[
+                table_selection,
+                current_role,
+            ],
+        outputs=export_output,
         )
 
     with gr.Tab("Reports"):
