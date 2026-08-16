@@ -1,6 +1,7 @@
 """Gradio user interface for the Student Grade Tracker."""
 
 import sqlite3
+from datetime import date
 from pathlib import Path
 
 import gradio as gr
@@ -108,7 +109,17 @@ def login_from_form(
     )
 
     if not login_message.startswith("Anmeldung erfolgreich."):
-        return login_message, "", ""
+        return (
+            login_message,
+            "",
+            "",
+            "Bitte zuerst anmelden.",
+            gr.update(
+                value=None,
+                visible=False,
+            ),
+        "🔒 **Nicht angemeldet**",
+    )
 
     student_id = student_id.strip().upper()
 
@@ -123,11 +134,37 @@ def login_from_form(
         ).fetchone()
 
     if account is None:
-        return "Benutzerkonto nicht gefunden!", "", ""
+        return (
+            login_message,
+            "",
+            "",
+            "Bitte zuerst anmelden.",
+            gr.update(
+                value=None,
+                visible=False,
+            ),
+            "🔒 **Nicht angemeldet**",
+        )
 
     role = account[0]
+    
+    dashboard = generate_dashboard_for_role(
+        student_id,
+        role,
+    )
 
-    return login_message, student_id, role
+    pass_plot = generate_pass_plot_for_role(
+        student_id,
+        role,
+    )
+
+    return (
+        login_message,
+        student_id,
+        role,
+        dashboard,
+        pass_plot,
+    )
 
 def create_demo_gradebook() -> GradeBook:
     """Create a small demo gradebook for the report tab."""
@@ -280,6 +317,86 @@ def generate_dashboard() -> str:
 | Bestehensquote | {pass_rate:.1f} % |
 """
 
+def generate_student_dashboard(student_id: str) -> str:
+    """Erzeuge persönliche Dashboard-Werte für einen Studenten."""
+
+    with sqlite3.connect(DATABASE_PATH) as connection:
+        student = connection.execute(
+            """
+            SELECT first_name, last_name
+            FROM students
+            WHERE student_id = ?
+            """,
+            (student_id,),
+        ).fetchone()
+
+        statistics = connection.execute(
+            """
+            SELECT
+                COUNT(g.id),
+                COUNT(DISTINCT g.course_id),
+                COALESCE(
+                    AVG(g.score / c.max_grade * 100),
+                    0
+                ),
+                COALESCE(
+                    AVG(
+                        CASE
+                            WHEN g.score >= c.passing_grade
+                            THEN 100.0
+                            ELSE 0.0
+                        END
+                    ),
+                    0
+                )
+            FROM grades AS g
+            JOIN courses AS c
+                ON g.course_id = c.course_id
+            WHERE g.student_id = ?
+            """,
+            (student_id,),
+        ).fetchone()
+
+    if student is None:
+        return "Student nicht gefunden."
+
+    full_name = f"{student[0]} {student[1]}"
+    grade_count = statistics[0]
+    course_count = statistics[1]
+    average = statistics[2]
+    pass_rate = statistics[3]
+
+    return f"""
+### Persönliches Dashboard
+
+| Kennzahl | Persönlicher Wert |
+|---|---:|
+| Student | {full_name} |
+| Student-ID | {student_id} |
+| Belegte Kurse | {course_count} |
+| Erfasste Noten | {grade_count} |
+| Gesamtdurchschnitt | {average:.1f} % |
+| Bestehensquote | {pass_rate:.1f} % |
+"""
+
+
+def generate_dashboard_for_role(
+    student_id: str,
+    role: str,
+) -> str:
+    """Wähle das Dashboard anhand der Benutzerrolle aus."""
+
+    if not student_id or not role:
+        return "Bitte zuerst anmelden."
+
+    if role == "student":
+        return generate_student_dashboard(student_id)
+
+    if role in FULL_REPORT_ROLES:
+        return generate_dashboard()
+
+    return "Keine Berechtigung für das Dashboard."
+
 def generate_pass_chart() -> pd.DataFrame:
     """Generate pass and fail statistics from the SQLite database."""
 
@@ -351,6 +468,88 @@ def generate_pass_plot():
 
     figure.tight_layout()
     return figure
+
+def generate_student_pass_plot(student_id: str):
+    """Erzeuge die Bestehensverteilung eines Studenten."""
+
+    with sqlite3.connect(DATABASE_PATH) as connection:
+        result = connection.execute(
+            """
+            SELECT
+                SUM(
+                    CASE
+                        WHEN g.score >= c.passing_grade
+                        THEN 1
+                        ELSE 0
+                    END
+                ),
+                SUM(
+                    CASE
+                        WHEN g.score < c.passing_grade
+                        THEN 1
+                        ELSE 0
+                    END
+                )
+            FROM grades AS g
+            JOIN courses AS c
+                ON g.course_id = c.course_id
+            WHERE g.student_id = ?
+            """,
+            (student_id,),
+        ).fetchone()
+
+    passed_count = result[0] or 0
+    failed_count = result[1] or 0
+
+    figure, axis = plt.subplots(figsize=(8, 4))
+
+    axis.bar(
+        ["Bestanden", "Nicht bestanden"],
+        [passed_count, failed_count],
+        color=["#4C78A8", "#F58518"],
+    )
+
+    axis.set_title("Meine Bestehensverteilung")
+    axis.set_xlabel("Status")
+    axis.set_ylabel("Anzahl der Noten")
+    axis.set_ylim(
+        0,
+        max(passed_count, failed_count) + 1,
+    )
+    axis.grid(axis="y", alpha=0.25)
+
+    figure.tight_layout()
+    return figure
+
+
+def generate_pass_plot_for_role(
+    student_id: str,
+    role: str,
+):
+    """Wähle das sichtbare Diagramm anhand der Rolle aus."""
+
+    if not student_id or not role:
+        return gr.update(
+            value=None,
+            visible=False,
+        )
+
+    if role == "student":
+        return gr.update(
+            value=generate_student_pass_plot(student_id),
+            visible=True,
+        )
+
+    if role in FULL_REPORT_ROLES:
+        return gr.update(
+            value=generate_pass_plot(),
+            visible=True,
+        )
+
+    return gr.update(
+        value=None,
+        visible=False,
+    )
 
 def generate_text_report(report_type: str, identifier: str) -> str:                
     """Generate a text report for the selected  report type."""
@@ -648,19 +847,22 @@ with gr.Blocks(title="Student Grade Tracker") as app:
 Dashboard · Studentenzugang · Notenerfassung · SQLite-Datenbank · Reports
 """
         )
-
+    session_output = gr.Markdown(
+        "🔒 **Nicht angemeldet**"
+    )
     with gr.Tab("Dashboard"):
         gr.Markdown("## Dashboard")
 
         dashboard_output = gr.Markdown(
-            generate_dashboard()
+            "Bitte zuerst anmelden."
         )
 
         gr.Markdown("### Bestehensverteilung")
 
         pass_plot_output = gr.Plot(
-            value=generate_pass_plot(),
+            value=None,
             label="Bestanden und nicht bestanden",
+            visible=False,
         )
 
     with gr.Tab("Zugang"):
@@ -699,6 +901,8 @@ Dashboard · Studentenzugang · Notenerfassung · SQLite-Datenbank · Reports
                         login_output,
                         current_student_id,
                         current_role,
+                        dashboard_output,
+                        pass_plot_output,
                     ],
                 )
 
@@ -776,7 +980,7 @@ Dashboard · Studentenzugang · Notenerfassung · SQLite-Datenbank · Reports
 
         grade_date_input = gr.Textbox(
             label="Datum",
-            value="2026-07-30",
+            value=date.today().isoformat(),
             placeholder="YYYY-MM-DD",
         )
 
