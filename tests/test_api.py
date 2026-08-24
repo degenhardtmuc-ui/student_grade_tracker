@@ -91,3 +91,76 @@ def test_get_students(
             "last_name": "Degenhardt",
         },
     ]
+
+@pytest.fixture
+
+def student_api_database(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> Path:
+    """Create a temporary student database for API tests."""
+
+    test_database = tmp_path / "student_api.db"
+
+    with sqlite3.connect(test_database) as connection:
+        connection.execute(
+            """
+            CREATE TABLE students (
+                student_id TEXT PRIMARY KEY,
+                first_name TEXT NOT NULL,
+                last_name TEXT NOT NULL,
+                email TEXT NOT NULL
+            )
+            """
+        )
+
+        connection.execute(
+            """
+            INSERT INTO students (
+                student_id,
+                first_name,
+                last_name,
+                email
+            )
+            VALUES (?, ?, ?, ?)
+            """,
+            (
+                "S002",
+                "Daniel",
+                "Degenhardt",
+                "daniel@example.com",
+            ),
+        )
+
+    monkeypatch.setattr(
+        api_module,
+        "DATABASE_PATH",
+        test_database,
+    )
+
+    return test_database
+
+def test_get_existing_student(
+    student_api_database: Path,
+) -> None:
+    """An existing student should be returned."""
+
+    response = client.get("/students/s002")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "student_id": "S002",
+        "first_name": "Daniel",
+        "last_name": "Degenhardt",
+    }
+def test_get_unknown_student(
+    student_api_database: Path,
+) -> None:
+    """An unknown student should return HTTP 404."""
+
+    response = client.get("/students/S999")
+
+    assert response.status_code == 404
+    assert response.json() == {
+        "detail": "Student S999 wurde nicht gefunden.",
+    }

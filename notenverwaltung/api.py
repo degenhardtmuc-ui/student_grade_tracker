@@ -84,3 +84,58 @@ def get_students() -> list[StudentResponse]:
         )
         for row in rows
     ]
+@app.get(
+    "/students/{student_id}",
+    response_model=StudentResponse,
+    tags=["Students"],
+    summary="Lade einen Studenten",
+)
+def get_student(
+    student_id: str,
+) -> StudentResponse:
+    """Return one student identified by the student ID."""
+
+    student_id = student_id.strip().upper()
+
+    if not DATABASE_PATH.exists():
+        raise HTTPException(
+            status_code=500,
+            detail="Die Datenbank wurde nicht gefunden.",
+        )
+
+    try:
+        with sqlite3.connect(DATABASE_PATH) as connection:
+            connection.row_factory = sqlite3.Row
+
+            row = connection.execute(
+                """
+                SELECT
+                    student_id,
+                    first_name,
+                    last_name
+                FROM students
+                WHERE student_id = ?
+                """,
+                (student_id,),
+            ).fetchone()
+
+    except sqlite3.Error as error:
+        raise HTTPException(
+            status_code=500,
+            detail="Der Datenbankzugriff ist fehlgeschlagen.",
+        ) from error
+
+    if row is None:
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                f"Student {student_id} "
+                "wurde nicht gefunden."
+            ),
+        )
+
+    return StudentResponse(
+        student_id=row["student_id"],
+        first_name=row["first_name"],
+        last_name=row["last_name"],
+    )
