@@ -1,6 +1,7 @@
 """Gradio user interface for the Student Grade Tracker."""
 
 import sqlite3
+import datetime
 from datetime import date
 from pathlib import Path
 
@@ -844,6 +845,17 @@ def record_grade_from_form(
 
     if not date:
         return "Bitte ein Datum eingeben."
+    
+    try:
+        parsed_date = datetime.date.fromisoformat(date)
+    except ValueError:
+        return (
+            "Bitte ein gültiges Datum "
+            "im Format YYYY-MM-DD eingeben."
+        )
+
+    if parsed_date > datetime.date.today():
+        return "Das Datum darf nicht in der Zukunft liegen."
 
     with sqlite3.connect(DATABASE_PATH) as connection:
         connection.execute(
