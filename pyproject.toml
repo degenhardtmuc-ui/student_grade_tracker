@@ -3,6 +3,7 @@ name = "student-grade-tracker"
 version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [
+    "fastapi[standard]>=0.139.2",
     "gradio>=6.20.0",
     "matplotlib>=3.11.1",
     "pandas>=3.0.3",
