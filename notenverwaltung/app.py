@@ -15,7 +15,12 @@ from notenverwaltung.exceptions import (
     CourseNotFoundError,
     StudentNotFoundError,
 )
-from notenverwaltung.auth import login_student, register_student
+from notenverwaltung.auth import (
+    change_user_role,
+    get_user_role_for_management,
+    login_student,
+    register_student,
+)
 
 # app.py liegt im Ordner notenverwaltung.
 # parent.parent führt deshalb zum Projektordner.
@@ -95,6 +100,36 @@ def register_from_form(
 
     return f"{result}\n\nStudent-ID: {student_id}"
 
+def load_role_from_form(
+    target_student_id: str,
+    acting_student_id: str,
+    acting_role: str,
+) -> tuple[str, str]:
+    """Lade die aktuelle Rolle für die Verwaltungsoberfläche."""
+
+    return get_user_role_for_management(
+        DATABASE_PATH,
+        acting_student_id,
+        acting_role,
+        target_student_id,
+    )
+
+
+def update_role_from_form(
+    target_student_id: str,
+    new_role: str,
+    acting_student_id: str,
+    acting_role: str,
+) -> tuple[str, str]:
+    """Speichere eine Rollenänderung aus der Verwaltungsoberfläche."""
+
+    return change_user_role(
+        DATABASE_PATH,
+        acting_student_id,
+        acting_role,
+        target_student_id,
+        new_role,
+    )
 
 def login_from_form(
     student_id: str,
