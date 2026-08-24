@@ -990,7 +990,74 @@ Dashboard · Studentenzugang · Notenerfassung · SQLite-Datenbank · Reports
                     ],
                     outputs=register_output,
                 )
+        
+        gr.Markdown("### Rollenverwaltung")
+        gr.Markdown(
+            "Nur der Super-Admin darf Benutzerrollen verändern."
+        )
 
+        role_user_input = gr.Dropdown(
+            choices=student_choices,
+            value=student_choices[0][1] if student_choices else None,
+            label="Benutzer auswählen",
+        )
+
+        current_user_role_output = gr.Textbox(
+            label="Aktuelle Rolle",
+            interactive=False,
+        )
+
+        new_user_role_input = gr.Dropdown(
+            choices=[
+                "student",
+                "teacher",
+                "admin",
+            ],
+            value="student",
+            label="Neue Rolle",
+        )
+
+        with gr.Row():
+            load_role_button = gr.Button(
+                "Aktuelle Rolle laden",
+            )
+
+            save_role_button = gr.Button(
+                "Rolle speichern",
+                variant="primary",
+            )
+
+        role_management_output = gr.Textbox(
+            label="Status Rollenverwaltung",
+            interactive=False,
+        )
+
+        load_role_button.click(
+            fn=load_role_from_form,
+            inputs=[
+                role_user_input,
+                current_student_id,
+                current_role,
+            ],
+            outputs=[
+                current_user_role_output,
+                role_management_output,
+            ],
+        )
+
+        save_role_button.click(
+            fn=update_role_from_form,
+            inputs=[
+                role_user_input,
+                new_user_role_input,
+                current_student_id,
+                current_role,
+            ],
+            outputs=[
+                current_user_role_output,
+                role_management_output,
+            ],
+        )
     with gr.Tab("Noten erfassen"):
         gr.Markdown("## Neue Note erfassen")
 

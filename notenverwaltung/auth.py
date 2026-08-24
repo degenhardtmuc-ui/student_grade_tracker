@@ -16,6 +16,12 @@ ALLOWED_ROLES = {
     "super_admin",
 }
 
+ASSIGNABLE_ROLES = {
+    "student",
+    "teacher",
+    "admin",
+}
+
 def _create_account_table(
     connection: sqlite3.Connection,
 ) -> None:
@@ -63,6 +69,152 @@ def _hash_password(
         PBKDF2_ITERATIONS,
     ).hex()
 
+def get_user_role_for_management(
+    database_path: Path,
+    acting_student_id: str,
+    acting_role: str,
+    target_student_id: str,
+) -> tuple[str, str]:
+    """Lese eine Benutzerrolle, wenn der Aufrufer Super-Admin ist."""
+
+    acting_student_id = acting_student_id.strip().upper()
+    target_student_id = target_student_id.strip().upper()
+
+    if not acting_student_id or not acting_role:
+        return "", "Bitte zuerst anmelden."
+
+    if not target_student_id:
+        return "", "Bitte einen Benutzer auswählen."
+
+    try:
+        with sqlite3.connect(database_path) as connection:
+            _create_account_table(connection)
+
+            acting_account = connection.execute(
+                """
+                SELECT role
+                FROM student_accounts
+                WHERE student_id = ?
+                """,
+                (acting_student_id,),
+            ).fetchone()
+
+            if (
+                acting_role != "super_admin"
+                or acting_account is None
+                or acting_account[0] != "super_admin"
+            ):
+                return "", (
+                    "Keine Berechtigung: Nur der Super-Admin "
+                    "darf Rollen verwalten."
+                )
+
+            target_account = connection.execute(
+                """
+                SELECT role
+                FROM student_accounts
+                WHERE student_id = ?
+                """,
+                (target_student_id,),
+            ).fetchone()
+
+    except sqlite3.Error:
+        return "", "Rolle konnte nicht geladen werden."
+
+    if target_account is None:
+        return "", "Benutzerkonto nicht gefunden."
+
+    role = target_account[0]
+
+    return (
+        role,
+        f"Aktuelle Rolle von {target_student_id}: {role}",
+    )
+
+def change_user_role(
+    database_path: Path,
+    acting_student_id: str,
+    acting_role: str,
+    target_student_id: str,
+    new_role: str,
+) -> tuple[str, str]:
+    """Ändere eine Rolle ausschließlich als angemeldeter Super-Admin."""
+
+    acting_student_id = acting_student_id.strip().upper()
+    target_student_id = target_student_id.strip().upper()
+    new_role = new_role.strip().lower()
+
+    if not acting_student_id or not acting_role:
+        return "", "Bitte zuerst anmelden."
+
+    if not target_student_id:
+        return "", "Bitte einen Benutzer auswählen."
+
+    if new_role not in ASSIGNABLE_ROLES:
+        return "", "Ungültige Rolle ausgewählt."
+
+    try:
+        with sqlite3.connect(database_path) as connection:
+            _create_account_table(connection)
+
+            acting_account = connection.execute(
+                """
+                SELECT role
+                FROM student_accounts
+                WHERE student_id = ?
+                """,
+                (acting_student_id,),
+            ).fetchone()
+
+            if (
+                acting_role != "super_admin"
+                or acting_account is None
+                or acting_account[0] != "super_admin"
+            ):
+                return "", (
+                    "Keine Berechtigung: Nur der Super-Admin "
+                    "darf Rollen verwalten."
+                )
+
+            target_account = connection.execute(
+                """
+                SELECT role
+                FROM student_accounts
+                WHERE student_id = ?
+                """,
+                (target_student_id,),
+            ).fetchone()
+
+            if target_account is None:
+                return "", "Benutzerkonto nicht gefunden."
+
+            if target_account[0] == "super_admin":
+                return "super_admin", (
+                    "Der Super-Admin kann hier nicht verändert werden."
+                )
+
+            connection.execute(
+                """
+                UPDATE student_accounts
+                SET role = ?
+                WHERE student_id = ?
+                """,
+                (
+                    new_role,
+                    target_student_id,
+                ),
+            )
+
+    except sqlite3.Error:
+        return "", "Rollenänderung fehlgeschlagen."
+
+    return (
+        new_role,
+        (
+            f"Rolle erfolgreich geändert: "
+            f"{target_student_id} ist jetzt {new_role}."
+        ),
+    )
 
 def register_student(
     database_path: Path,
