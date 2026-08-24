@@ -199,6 +199,10 @@ def login_from_form(
         role,
         dashboard,
         pass_plot,
+        (
+            f"🔓 **Angemeldet: {student_id} · "
+            f"Rolle: {role}**"
+        ),
     )
 
 def create_demo_gradebook() -> GradeBook:
@@ -938,6 +942,7 @@ Dashboard · Studentenzugang · Notenerfassung · SQLite-Datenbank · Reports
                         current_role,
                         dashboard_output,
                         pass_plot_output,
+                        session_output,
                     ],
                 )
 
