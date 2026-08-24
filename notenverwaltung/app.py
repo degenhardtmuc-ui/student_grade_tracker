@@ -205,6 +205,23 @@ def login_from_form(
         ),
     )
 
+def logout_from_form():
+    """Beende die aktuelle Benutzersitzung."""
+
+    return (
+        "Abmeldung erfolgreich.",
+        "",
+        "",
+        "Bitte zuerst anmelden.",
+        gr.update(
+            value=None,
+            visible=False,
+        ),
+        "🔒 **Nicht angemeldet**",
+        "",
+        "",
+    )
+
 def create_demo_gradebook() -> GradeBook:
     """Create a small demo gradebook for the report tab."""
     gradebook = GradeBook()
@@ -924,7 +941,11 @@ Dashboard · Studentenzugang · Notenerfassung · SQLite-Datenbank · Reports
                     "Anmelden",
                     variant="primary",
                 )
-
+                
+                logout_button = gr.Button(
+                    "Abmelden",
+                )
+                
                 login_output = gr.Textbox(
                     label="Anmeldestatus",
                     interactive=False,
@@ -945,7 +966,22 @@ Dashboard · Studentenzugang · Notenerfassung · SQLite-Datenbank · Reports
                         session_output,
                     ],
                 )
-
+                
+                logout_button.click(
+                    fn=logout_from_form,
+                    inputs=[],
+                    outputs=[
+                        login_output,
+                        current_student_id,
+                        current_role,
+                        dashboard_output,
+                        pass_plot_output,
+                        session_output,
+                        login_id_input,
+                        login_password_input,
+                    ],
+                )
+            
             with gr.Column():
                 gr.Markdown("### Neu registrieren")
                 gr.Markdown(
