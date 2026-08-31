@@ -28,6 +28,16 @@ class StudentResponse(BaseModel):
     first_name: str
     last_name: str
 
+
+class CourseResponse(BaseModel):
+    """Course data returned by the API."""
+
+    course_id: str
+    name: str
+    max_grade: float
+    passing_grade: float
+
+
 @app.get(
     "/health",
     tags=["System"],
@@ -40,6 +50,54 @@ def health_check() -> dict[str, str]:
         "status": "ok",
         "service": "student-grade-tracker-api",
     }
+
+@app.get(
+    "/courses",
+    response_model=list[CourseResponse],
+    tags=["Courses"],
+    summary="Lade alle Kurse",
+)
+def get_courses() -> list[CourseResponse]:
+    """Return all courses stored in the SQLite database."""
+
+    if not DATABASE_PATH.exists():
+        raise HTTPException(
+            status_code=500,
+            detail="Die Datenbank wurde nicht gefunden.",
+        )
+
+    try:
+        with sqlite3.connect(DATABASE_PATH) as connection:
+            connection.row_factory = sqlite3.Row
+
+            rows = connection.execute(
+                """
+                SELECT
+                    course_id,
+                    name,
+                    max_grade,
+                    passing_grade
+                FROM courses
+                ORDER BY course_id
+                """
+            ).fetchall()
+
+    except sqlite3.Error as error:
+        raise HTTPException(
+            status_code=500,
+            detail="Der Datenbankzugriff ist fehlgeschlagen.",
+        ) from error
+
+    return [
+        CourseResponse(
+            course_id=row["course_id"],
+            name=row["name"],
+            max_grade=row["max_grade"],
+            passing_grade=row["passing_grade"],
+        )
+        for row in rows
+    ]
+
 @app.get(
     "/students",
     response_model=list[StudentResponse],

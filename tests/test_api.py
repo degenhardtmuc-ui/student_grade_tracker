@@ -164,3 +164,81 @@ def test_get_unknown_student(
     assert response.json() == {
         "detail": "Student S999 wurde nicht gefunden.",
     }
+
+@pytest.fixture
+def course_api_database(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> Path:
+    """Create a temporary course database for API tests."""
+
+    test_database = tmp_path / "course_api.db"
+
+    with sqlite3.connect(test_database) as connection:
+        connection.execute(
+            """
+            CREATE TABLE courses (
+                course_id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                max_grade REAL NOT NULL,
+                passing_grade REAL NOT NULL
+            )
+            """
+        )
+
+        connection.executemany(
+            """
+            INSERT INTO courses (
+                course_id,
+                name,
+                max_grade,
+                passing_grade
+            )
+            VALUES (?, ?, ?, ?)
+            """,
+            [
+                (
+                    "AI101",
+                    "Artificial Intelligence Basics",
+                    100.0,
+                    50.0,
+                ),
+                (
+                    "CS102",
+                    "Python Programming",
+                    100.0,
+                    50.0,
+                ),
+            ],
+        )
+
+    monkeypatch.setattr(
+        api_module,
+        "DATABASE_PATH",
+        test_database,
+    )
+
+    return test_database
+
+def test_get_courses(
+    course_api_database: Path,
+) -> None:
+    """The courses endpoint should return SQLite courses."""
+
+    response = client.get("/courses")
+
+    assert response.status_code == 200
+    assert response.json() == [
+        {
+            "course_id": "AI101",
+            "name": "Artificial Intelligence Basics",
+            "max_grade": 100.0,
+            "passing_grade": 50.0,
+        },
+        {
+            "course_id": "CS102",
+            "name": "Python Programming",
+            "max_grade": 100.0,
+            "passing_grade": 50.0,
+        },
+    ]
